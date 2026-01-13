@@ -28,7 +28,7 @@ def test_website_map_and_raw_content(env_config):
 def test_extract_content_handles_invalid_urls():
     # Pass an invalid URL and ensure extract_content handles errors gracefully
     url_dict = {"group_0": ["http://nonexistent.invalid"]}
-    res = extract_content(url_dict)
+    res = extract_content(url_dict) # type: ignore
     assert isinstance(res, dict)
     # The group should be present and its value should be a list (possibly empty)
     assert "group_0" in res

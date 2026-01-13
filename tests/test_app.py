@@ -51,14 +51,14 @@ def test_app_generator_includes_thinking_and_content(env_config, test_chroma_dir
     # Simulate aya_gradio_chat wrapper behavior
     history = []
     # Generator that mimics aya_gradio_chat
-    def aya_like_chat(message, history):
+    def like_chat(message, history):
         yield history + [{"role": "assistant", "content": "⏳ Thinking..."}]
         accumulated = ""
         for chunk in gi.stream_chat(message, history, 3):
             accumulated = chunk
             yield history + [{"role": "assistant", "content": accumulated}]
 
-    g = aya_like_chat("Say hello", history)
+    g = like_chat("Say hello", history)
     first = next(g)
     assert any("Thinking" in m.get("content", "") for m in first)
 

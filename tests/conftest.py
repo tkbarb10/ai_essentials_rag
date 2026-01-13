@@ -26,7 +26,7 @@ except ModuleNotFoundError:
             raise RuntimeError("Missing package 'tavily'. Install it to run Tavily integration tests")
         def extract(self, *a, **kw):
             raise RuntimeError("Missing package 'tavily'. Install it to run Tavily integration tests")
-    tavily.TavilyClient = _TavilyStub
+    tavily.TavilyClient = _TavilyStub # type: ignore
     sys.modules['tavily'] = tavily
 
 try:
@@ -38,7 +38,7 @@ except ModuleNotFoundError:
         __stub__ = True
         def __init__(self, *a, **kw):
             pass
-    _hf.HuggingFaceEmbeddings = _HFStub
+    _hf.HuggingFaceEmbeddings = _HFStub # type: ignore
     sys.modules['langchain_huggingface'] = _hf
 
 try:
@@ -65,7 +65,7 @@ except ModuleNotFoundError:
                     results.append(doc)
             # return up to k results
             return results[:k]
-    _ch.Chroma = _ChromaStub
+    _ch.Chroma = _ChromaStub # type: ignore
     sys.modules['langchain_chroma'] = _ch
 
 try:
@@ -75,7 +75,7 @@ except ModuleNotFoundError:
     _cm = types.ModuleType('langchain.chat_models')
     def init_chat_model(**kwargs):
         raise RuntimeError("Missing 'langchain' chat model provider. Install the required provider to run LLM integration tests")
-    _cm.init_chat_model = init_chat_model
+    _cm.init_chat_model = init_chat_model # type: ignore
     sys.modules['langchain.chat_models'] = _cm
 
 try:
@@ -87,7 +87,7 @@ except ModuleNotFoundError:
         __stub__ = True
         def __init__(self, *a, **kw):
             pass
-    _groq.Groq = _GroqStub
+    _groq.Groq = _GroqStub # type: ignore
     sys.modules['groq'] = _groq
 
 # Integration tests use real APIs and keys loaded from .env
