@@ -35,7 +35,7 @@ assistant = RAGAssistant(
 gradio_assistant = GradioInterface(assistant)
 logger = gradio_assistant.logger
 
-def aya_gradio_chat(message, history):
+def gradio_chat(message, history):
     """Wrapper with loading state."""
     try:
         # Show typing indicator
@@ -141,7 +141,7 @@ h1 {
 """
 
 demo = gr.ChatInterface(
-    fn=aya_gradio_chat,
+    fn=gradio_chat,
     title="Blueprints for Text Analytics in Python Textbook",
     chatbot=custom_chatbot,
     textbox=custom_textbox,

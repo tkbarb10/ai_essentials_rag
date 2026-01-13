@@ -1,0 +1,225 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 600">
+  <!-- Define gradients -->
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066CC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00A3E0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#11998e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38ef7d;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#667eea" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="700" y="40" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#1a202c" text-anchor="middle">
+    RAG Assistant Pipeline
+  </text>
+  <text x="700" y="70" font-family="Inter, Arial, sans-serif" font-size="14" fill="#718096" text-anchor="middle">
+    From Web Scraping to Production Chatbot
+  </text>
+  
+  <!-- Stage 1: Scrape -->
+  <g id="stage1">
+    <rect x="50" y="120" width="200" height="120" rx="12" fill="url(#blueGrad)" opacity="0.9"/>
+    <text x="150" y="155" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600" fill="white" text-anchor="middle">
+      1. Web Scraping
+    </text>
+    <text x="150" y="180" font-family="Inter, Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">
+      scrape.py
+    </text>
+    <rect x="70" y="195" width="160" height="30" rx="6" fill="white" opacity="0.2"/>
+    <text x="150" y="215" font-family="Inter, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">
+      Tavily API
+    </text>
+    
+    <!-- Output label -->
+    <text x="150" y="260" font-family="Inter, Arial, sans-serif" font-size="10" fill="#4a5568" text-anchor="middle">
+      Raw HTML/Content
+    </text>
+  </g>
+  
+  <!-- Arrow 1 -->
+  <line x1="250" y1="180" x2="310" y2="180" stroke="#667eea" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 2: Clean -->
+  <g id="stage2">
+    <rect x="310" y="120" width="200" height="120" rx="12" fill="url(#blueGrad)" opacity="0.9"/>
+    <text x="410" y="155" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600" fill="white" text-anchor="middle">
+      2. Content Cleaning
+    </text>
+    <text x="410" y="180" font-family="Inter, Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">
+      clean.py
+    </text>
+    <rect x="330" y="195" width="160" height="30" rx="6" fill="white" opacity="0.2"/>
+    <text x="410" y="215" font-family="Inter, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">
+      Groq LLM
+    </text>
+    
+    <!-- Output label -->
+    <text x="410" y="260" font-family="Inter, Arial, sans-serif" font-size="10" fill="#4a5568" text-anchor="middle">
+      Cleaned Text
+    </text>
+  </g>
+  
+  <!-- Arrow 2 -->
+  <line x1="510" y1="180" x2="570" y2="180" stroke="#667eea" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 3: Prep -->
+  <g id="stage3">
+    <rect x="570" y="120" width="200" height="120" rx="12" fill="url(#blueGrad)" opacity="0.9"/>
+    <text x="670" y="155" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600" fill="white" text-anchor="middle">
+      3. Content Prep
+    </text>
+    <text x="670" y="180" font-family="Inter, Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">
+      prep.py
+    </text>
+    <rect x="590" y="195" width="160" height="30" rx="6" fill="white" opacity="0.2"/>
+    <text x="670" y="215" font-family="Inter, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">
+      Groq LLM
+    </text>
+    
+    <!-- Output label -->
+    <text x="670" y="260" font-family="Inter, Arial, sans-serif" font-size="10" fill="#4a5568" text-anchor="middle">
+      Organized Markdown
+    </text>
+  </g>
+  
+  <!-- Arrow 3 -->
+  <line x1="770" y1="180" x2="830" y2="180" stroke="#667eea" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 4: Initialize & Insert -->
+  <g id="stage4">
+    <rect x="830" y="120" width="200" height="120" rx="12" fill="url(#purpleGrad)" opacity="0.9"/>
+    <text x="930" y="145" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600" fill="white" text-anchor="middle">
+      4. Vector Store
+    </text>
+    <text x="930" y="170" font-family="Inter, Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">
+      initialize.py + insert.py
+    </text>
+    <rect x="850" y="185" width="160" height="30" rx="6" fill="white" opacity="0.2"/>
+    <text x="930" y="205" font-family="Inter, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">
+      Chroma DB + HuggingFace
+    </text>
+    
+    <!-- Output label -->
+    <text x="930" y="260" font-family="Inter, Arial, sans-serif" font-size="10" fill="#4a5568" text-anchor="middle">
+      Embedded Chunks
+    </text>
+  </g>
+  
+  <!-- Arrow 4 -->
+  <line x1="1030" y1="180" x2="1090" y2="180" stroke="#667eea" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 5: App -->
+  <g id="stage5">
+    <rect x="1090" y="120" width="200" height="120" rx="12" fill="url(#greenGrad)" opacity="0.9"/>
+    <text x="1190" y="155" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600" fill="white" text-anchor="middle">
+      5. Chat Interface
+    </text>
+    <text x="1190" y="180" font-family="Inter, Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">
+      app.py
+    </text>
+    <rect x="1110" y="195" width="160" height="30" rx="6" fill="white" opacity="0.2"/>
+    <text x="1190" y="215" font-family="Inter, Arial, sans-serif" font-size="11" fill="white" text-anchor="middle">
+      Gradio + RAGAssistant
+    </text>
+    
+    <!-- Output label -->
+    <text x="1190" y="260" font-family="Inter, Arial, sans-serif" font-size="10" fill="#4a5568" text-anchor="middle">
+      Live Chatbot 🤖
+    </text>
+  </g>
+  
+  <!-- Bottom section: Key Components -->
+  <g id="components">
+    <rect x="50" y="320" width="1240" height="240" rx="12" fill="#f7fafc" stroke="#e2e8f0" stroke-width="2"/>
+    
+    <text x="670" y="355" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="600" fill="#2d3748" text-anchor="middle">
+      Core Components
+    </text>
+    
+    <!-- Component boxes -->
+    <!-- Data Processing -->
+    <g id="comp1">
+      <rect x="80" y="380" width="260" height="140" rx="8" fill="white" stroke="#cbd5e0" stroke-width="2"/>
+      <text x="210" y="410" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" fill="#2d3748" text-anchor="middle">
+        📊 Data Processing
+      </text>
+      <text x="95" y="440" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Web scraping with Tavily API
+      </text>
+      <text x="95" y="465" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • LLM-powered cleaning
+      </text>
+      <text x="95" y="490" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Content categorization
+      </text>
+    </g>
+    
+    <!-- Vector Store -->
+    <g id="comp2">
+      <rect x="370" y="380" width="260" height="140" rx="8" fill="white" stroke="#cbd5e0" stroke-width="2"/>
+      <text x="500" y="410" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" fill="#2d3748" text-anchor="middle">
+        🗄️ Vector Store
+      </text>
+      <text x="385" y="440" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Chroma database
+      </text>
+      <text x="385" y="465" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • HuggingFace embeddings
+      </text>
+      <text x="385" y="490" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Semantic search (MMR)
+      </text>
+    </g>
+    
+    <!-- RAG Engine -->
+    <g id="comp3">
+      <rect x="660" y="380" width="260" height="140" rx="8" fill="white" stroke="#cbd5e0" stroke-width="2"/>
+      <text x="790" y="410" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" fill="#2d3748" text-anchor="middle">
+        🧠 RAG Engine
+      </text>
+      <text x="675" y="440" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Context retrieval
+      </text>
+      <text x="675" y="465" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Prompt engineering
+      </text>
+      <text x="675" y="490" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Tool calling (web search)
+      </text>
+    </g>
+    
+    <!-- User Interface -->
+    <g id="comp4">
+      <rect x="950" y="380" width="260" height="140" rx="8" fill="white" stroke="#cbd5e0" stroke-width="2"/>
+      <text x="1080" y="410" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" fill="#2d3748" text-anchor="middle">
+        💬 User Interface
+      </text>
+      <text x="965" y="440" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Gradio web app
+      </text>
+      <text x="965" y="465" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Streaming responses
+      </text>
+      <text x="965" y="490" font-family="Inter, Arial, sans-serif" font-size="12" fill="#4a5568">
+        • Session logging
+      </text>
+    </g>
+  </g>
+  
+  <!-- Footer note -->
+  <text x="700" y="585" font-family="Inter, Arial, sans-serif" font-size="11" fill="#a0aec0" text-anchor="middle">
+    Modular pipeline designed for flexibility • CLI + Notebook compatible • YAML-configured prompts
+  </text>
+</svg>
