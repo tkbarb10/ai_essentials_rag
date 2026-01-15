@@ -31,7 +31,7 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 
 ![RAG Pipeline Diagram](assets/rag_pipeline.svg)
 
-1) **ingestion**
+### Stage 1: Ingestion
 
     In the `ingestion/` directory you'll find three scripts: `scrape.py`, `clean.py`, `prep.py`.  All three can be utilized through the CLI or within a notebook
 
@@ -44,31 +44,36 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 - `prep.py`  
     After cleaning the strings, there is bound to be a lot of redundant and disorganized content.  So this step utilizes a language model to sort through the provided information, remove redundant and useless content, and organize the remaining into categories that would be useful for storage into a vector database.  These categories can be provided by you, or can be left to the LLM to decide.  The output will be a single string organized in Markdown format (important for the text splitting process)
 
-2) **vector_store**
+### Stage 2: Vector Store
 
-    There are two scripts here to `initialize` the vector store and `insert ` RAG material into it.  Like before, these scripts can be utilized through the CLI or imported into your notebook
+    There are two scripts here to `initialize` the vector store and `insert` RAG material into it.  Like before, these scripts can be utilized through the CLI or imported into your notebook
 
 - `initialize.py`  
+    Using a Langchain wrapper for Chroma DB, this script loads a Hugging Face embedding model and instantiates a vector store with a name and location of your choosing.  If you already have a vector store you'd like to you, just pass the path and name of the store and it will be activated
+
+- `insert.py`  
+    This script takes the previous one a step further and also accepts a path to the documents you wish to upload, splits them, and adds to the store.  The splitting process first uses Langchains `MarkdownHeaderTextSplitter` to split the text on headers and subheaders.  The reason for this is because the method automatically recognizes these headers and adds them as metadata.  If your content isn't in Markdown format, don't worry. It'll pass through the markdown splitter into the next step which uses `RecursiveCharacterTextSplitter` which will then chunk the text recursively within the markdown headers or without.  The default chunk is 750 tokens with an overlap between chunks of 150.
+
+### Stage 3: RAG Assistant
+
+    There are two classes for this step.  `rag_assistant` binds the previous steps with an LLM to query and can be utilized through the CLI or imported into a notebook.  `gradio_interface` allows you to interact with the RAG Assistant through a `Gradio` app.
+
+- `rag_assistant.py`  
+    This script contains a class called RagAssistant.  This combines all the previous steps and has a `topic` and `prompt_template` arguement.  The `topic` is a string you can insert describing what your vector store contains (e.g "Blueprints for Text Analytics in Python textbook") and `prompt_template` is the prompt for the 'personality' you want the model to have.  The default is 'educational_assistant'.  Once set up, you can ask the model any question you like and it'll respond using the context provided by the vector store
 
 ## Installation & Setup
-[Step-by-step environment setup]
 
-## Pipeline Stages (Step-by-Step Instructions)
+If you don't already have it, run ```pip install uv```
 
-### Stage 1: Web Scraping (scrape.py)
-- What it does
-- Code snippets showing key functions
-- CLI usage examples
-- Notebook usage examples
+```git clone https://github.com/tkbarb10/ai_essentials_rag.git
+```
 
-### Stage 2: Content Cleaning (clean.py)
-[Same structure for each stage...]
+Run ```uv venv``` to set up your env then ```uv sync``` to install dependencies
 
-### Stage 3: Content Preparation (prep.py)
+Set up your `.env` file.  You'll need at least one model API key
 
-### Stage 4: Vector Store Setup (initialize.py + insert.py)
 
-### Stage 5: Chat Application (app.py)
+
 
 ## Configuration & Customization
 - YAML prompt system
@@ -83,7 +88,7 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 - API rate limits
 - File path issues
 
-## Future Directions
+## Future Directions/Limitations
 - Multi-agent orchestration plans
 - Additional use cases
 

@@ -31,7 +31,7 @@ class RAGAssistant:
         persist_path: str,
         collection_name: str,
         topic: str,
-        prompt_template: str = 'qa_assistant',
+        prompt_template: str = 'educational_assistant',
         components: Optional[Dict[str, Any]] = None,
         db_kwargs: Optional[Dict[str, Any]] = None
     ):
@@ -40,10 +40,10 @@ class RAGAssistant:
         Args:
             persist_path: Directory for Chroma persistence.
             collection_name: Name of the Chroma collection to create or load.
-            topic: The topic this RAG assistant specializes in (e.g., "Aya Healthcare").
+            topic: The topic this RAG assistant specializes in (e.g., "Blueprints for Text Analytics in Python textbook").
                 This will replace {topic} placeholders in prompts.
             prompt_template: Name of the prompt template to use from prompts YAML.
-                Defaults to 'qa_assistant'. Other options: 'basic_prompt' (legacy).
+                Defaults to 'educational_assistant'.
             components: Optional dict of reusable prompt components:
                 - 'tones': Dict of named tone configurations (default: 'conversational')
                 - 'reasoning_strategies': Dict of reasoning strategies (default: 'Self-Ask')

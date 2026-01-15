@@ -1,7 +1,7 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 from typing import List
 
-def chunk_markdown_text(paper_content: str | List[str], chunk_size: int=750, chunk_overlap: int=50, **kwargs):
+def chunk_markdown_text(paper_content: str | List[str], chunk_size: int=750, chunk_overlap: int=150, **kwargs):
     """Split markdown content into smaller chunks suitable for embedding/search.
 
     The function first splits on Markdown headers using `MarkdownHeaderTextSplitter`
