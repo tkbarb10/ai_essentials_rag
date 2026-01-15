@@ -33,7 +33,7 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 
 ### Stage 1: Ingestion
 
-    In the `ingestion/` directory you'll find three scripts: `scrape.py`, `clean.py`, `prep.py`.  All three can be utilized through the CLI or within a notebook
+In the `ingestion/` directory you'll find three scripts: `scrape.py`, `clean.py`, `prep.py`.  All three can be utilized through the CLI or within a notebook
 
  - `scrape.py`  
     This script uses the Tavily web API to map and extract content from a root URL.  You first provide a root url that you want to start with, and the `.map()` method will extract every url it can find from that url to within a certain depth.  You can provide instructions to the mapper, change the maximum depth it'll search to (default is 5), or adjust any other parameter than the `.map()` accepts.  This will output a link of urls that can then be iterated through to extract their raw content via the `.extract()` method.  The result is a list of raw strings scraped from each url in the list
@@ -46,7 +46,7 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 
 ### Stage 2: Vector Store
 
-    There are two scripts here to `initialize` the vector store and `insert` RAG material into it.  Like before, these scripts can be utilized through the CLI or imported into your notebook
+There are two scripts here to `initialize` the vector store and `insert` RAG material into it.  Like before, these scripts can be utilized through the CLI or imported into your notebook
 
 - `initialize.py`  
     Using a Langchain wrapper for Chroma DB, this script loads a Hugging Face embedding model and instantiates a vector store with a name and location of your choosing.  If you already have a vector store you'd like to you, just pass the path and name of the store and it will be activated
@@ -56,7 +56,7 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 
 ### Stage 3: RAG Assistant
 
-    There are two classes for this step.  `rag_assistant` binds the previous steps with an LLM to query and can be utilized through the CLI or imported into a notebook.  `gradio_interface` allows you to interact with the RAG Assistant through a `Gradio` app.
+There are two classes for this step.  `rag_assistant` binds the previous steps with an LLM to query and can be utilized through the CLI or imported into a notebook.  `gradio_interface` allows you to interact with the RAG Assistant through a `Gradio` app.
 
 - `rag_assistant.py`  
     This script contains a class called RagAssistant.  This combines all the previous steps and has a `topic` and `prompt_template` arguement.  The `topic` is a string you can insert describing what your vector store contains (e.g "Blueprints for Text Analytics in Python textbook") and `prompt_template` is the prompt for the 'personality' you want the model to have.  The default is 'educational_assistant'.  Once set up, you can ask the model any question you like and it'll respond using the context provided by the vector store
@@ -66,16 +66,15 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 
 ## Installation & Setup
 
-If you don't already have it, run 
+If you don't already have it, install `uv` package then clone the repo
 ```python
 pip install uv
-```
 
-```python
 git clone https://github.com/tkbarb10/ai_essentials_rag.git
+cd ai_essentials_rag
 ```
 
-Run ```uv venv``` to set up your env then ```uv sync``` to install dependencies
+Run `uv venv` to set up your env then `uv sync` to install dependencies
 
 Set up your `.env` file.  You'll need at least one model API key
 
@@ -93,6 +92,8 @@ python app.py
 
 ## Configuration & Customization
 - YAML prompt system
+    Prompts can be found in the prompts
+
 - Modular components
 - Extending for different use cases
 
