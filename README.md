@@ -17,11 +17,11 @@ The reason for that particular text is because I'm currently enrolled in a Maste
 ## Prerequisites
 - Python 3.12.9 or higher
 - Required API keys
-  - LLM
+  - LLM  
     This repo uses Langchain to wrap models, giving you flexibility in the model you choose.  It's currently set up using Groq as a provider, but can be easily switched to any  provider/model that Langchain supports
-  - Tavily
+  - Tavily  
     Tavily is the web search application used for web search.  This is needed to enable the RAG Assistant to have the abilty to search the web.  It is also used for scraping the web for content for your vector database
-  - HuggingFace
+  - HuggingFace  
     A HF log in is needed for the embedding models
 - Basic understanding of: LLMs, vector databases, web APIs
 
@@ -33,22 +33,22 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 
 1) **ingestion**
 
-In the `ingestion/` directory you'll find three scripts: `scrape.py`, `clean.py`, `prep.py`.  All three can be utilized through the CLI or within a notebook
+    In the `ingestion/` directory you'll find three scripts: `scrape.py`, `clean.py`, `prep.py`.  All three can be utilized through the CLI or within a notebook
 
- - `scrape.py`
+ - `scrape.py`  
     This script uses the Tavily web API to map and extract content from a root URL.  You first provide a root url that you want to start with, and the `.map()` method will extract every url it can find from that url to within a certain depth.  You can provide instructions to the mapper, change the maximum depth it'll search to (default is 5), or adjust any other parameter than the `.map()` accepts.  This will output a link of urls that can then be iterated through to extract their raw content via the `.extract()` method.  The result is a list of raw strings scraped from each url in the list
 
-- `clean.py`
+- `clean.py`  
     The resulting list of content will be messy.  There will be links to random images, html tags, lots of dead space, etc.  Instead of having to figure out every edge case to clean this up, we can leverage the power of LLM's.  This script first creates a list of message payloads for each string and then iterates through making calls to an LLM prompting it to clean up the raw string and returning just the content we're interested in.  This can be a costly process so messages that go beyond your rate limits are skipped.  Your chosen model is pinged first to get the rate limit for your account.  The final result is a single string with headers to denote individual sites.
 
-- `prep.py`
+- `prep.py`  
     After cleaning the strings, there is bound to be a lot of redundant and disorganized content.  So this step utilizes a language model to sort through the provided information, remove redundant and useless content, and organize the remaining into categories that would be useful for storage into a vector database.  These categories can be provided by you, or can be left to the LLM to decide.  The output will be a single string organized in Markdown format (important for the text splitting process)
 
 2) **vector_store**
 
-There are two scripts here to `initialize` the vector store and `insert ` RAG material into it.  Like before, these scripts can be utilized through the CLI or imported into your notebook
+    There are two scripts here to `initialize` the vector store and `insert ` RAG material into it.  Like before, these scripts can be utilized through the CLI or imported into your notebook
 
-- `initialize.py`
+- `initialize.py`  
 
 ## Installation & Setup
 [Step-by-step environment setup]
