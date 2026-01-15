@@ -61,6 +61,9 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 - `rag_assistant.py`  
     This script contains a class called RagAssistant.  This combines all the previous steps and has a `topic` and `prompt_template` arguement.  The `topic` is a string you can insert describing what your vector store contains (e.g "Blueprints for Text Analytics in Python textbook") and `prompt_template` is the prompt for the 'personality' you want the model to have.  The default is 'educational_assistant'.  Once set up, you can ask the model any question you like and it'll respond using the context provided by the vector store
 
+- `gradio_interface.py` -> `app.py`
+    This class wraps the RAG Assistant in an interface to adapt it to Gradio.  It can be launched with the `app.py` script through the CLI 
+
 ## Installation & Setup
 
 If you don't already have it, run ```pip install uv```
@@ -72,8 +75,15 @@ Run ```uv venv``` to set up your env then ```uv sync``` to install dependencies
 
 Set up your `.env` file.  You'll need at least one model API key
 
+To run every script except the gradio interface you can access it as a module
 
+```python -m directory.script
+```
 
+To run the Gradio app
+
+```python app.py
+```
 
 ## Configuration & Customization
 - YAML prompt system
