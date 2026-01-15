@@ -66,9 +66,13 @@ High level overview of the steps in the pipeline.  It was designed to be modular
 
 ## Installation & Setup
 
-If you don't already have it, run ```pip install uv```
+If you don't already have it, run 
+```python
+pip install uv
+```
 
-```git clone https://github.com/tkbarb10/ai_essentials_rag.git
+```python
+git clone https://github.com/tkbarb10/ai_essentials_rag.git
 ```
 
 Run ```uv venv``` to set up your env then ```uv sync``` to install dependencies
@@ -77,12 +81,14 @@ Set up your `.env` file.  You'll need at least one model API key
 
 To run every script except the gradio interface you can access it as a module
 
-```python -m directory.script
+```python
+python -m directory.script
 ```
 
 To run the Gradio app
 
-```python app.py
+```python
+python app.py
 ```
 
 ## Configuration & Customization
