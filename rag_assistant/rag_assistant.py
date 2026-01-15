@@ -199,8 +199,8 @@ class RAGAssistant:
             
             formatted.append(
                 f"Document {i+1}:\n"
-                f"Topic: {metadata.get('Main Topic', 'Unknown')}\n"
-                f"SubTopic: {metadata.get('Subtopic', 'Unknown')}\n"
+                f"Topic: {metadata.get('Main Topic', 'None')}\n"
+                f"SubTopic: {metadata.get('Subtopic', 'None')}\n"
                 f"Content: {content}\n"
             )
         

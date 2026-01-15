@@ -1,3 +1,13 @@
+# My personal ones
+.claude
+.gradio
+.vscode
+__pycache__
+*./gradio_logs.log
+*tests
+pytest.ini
+uv.lock
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
