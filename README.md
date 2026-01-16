@@ -1,136 +1,813 @@
 # RAG Assistant: Building a Complete Pipeline from Web Scraping to Chatbot
 
-## TL;DR / Abstract
-- Add more about why it matters
+![Python Version](https://img.shields.io/badge/python-3.12.9+-blue.svg)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-This project outlines the steps to get to get a RAG application up and running from any stage in the process, whether that be just an idea in your head, or you already have an organized vector database and just need an LLM interface to plug it into.  Below I'll give an overview of the point of this project and how it evolved
+## 📋 TL;DR
 
-## Table of Contents
-[Auto-generated links to sections]
+A complete end-to-end RAG (Retrieval-Augmented Generation) pipeline that scrapes and processes web content, stores it in a vector database, and provides an interactive Gradio chat interface. Built with modularity in mind—use the entire pipeline or pick individual components for your specific needs. Perfect for building domain-specific AI assistants without the hassle of manual data curation.
 
-## Overview
+---
 
-RAG is a method by which we split up documents into vector embeddings for storage in a vector database in order to provide context to a language model at run time to enrich its responses.  In this project we'll walk through each of the steps from the beginning.  We'll start with a simple method to scrape the web to get the raw material for your RAG pipeline.  Then we'll run through a couple LLM-powered methods to clean and organize the raw content.  Depending on the size of corpus you find, this could be a simple showcase of one of the benefits over RAG instead of putting everything in a prompt.  Then we'll walk through how to store this content into a vector database before topping it off with a demonstration with the stored text "Blueprints for Text Analytics in Python" using a Gradio interface.
+## 📚 Table of Contents
 
-The reason for that particular text is because I'm currently enrolled in a Masters for Data Science program at University of San Diego and taking a class called Applied Large Language Models for Data Science.  The original syllabus has called for two texts, the one above and another.  But unbeknownst to me, they revamped the syllabus and are now only requiring the other text.  Since I already had the Blueprints one, instead of letting it sit on my hard drive, I figured it would be put to better use in this project where Iu could still learn from it without worrying about reading the whole thing.
+- [What is RAG?](#what-is-rag)
+- [Why This Project?](#why-this-project)
+- [Features](#features)
+- [Installation & Quick Start](#installation--quick-start)
+- [Project Structure](#project-structure)
+- [Detailed Architecture](#detailed-architecture)
+  - [Stage 1: Ingestion](#stage-1-ingestion)
+  - [Stage 2: Vector Store](#stage-2-vector-store)
+  - [Stage 3: RAG Assistant](#stage-3-rag-assistant)
+- [Usage Examples](#usage-examples)
+- [Configuration & Customization](#configuration--customization)
+- [Logging](#logging)
+- [Troubleshooting](#troubleshooting)
+- [Future Directions & Limitations](#future-directions--limitations)
+- [Contributing](#contributing)
+- [License](#license)
+- [References & Resources](#references--resources)
 
-## Prerequisites
-- Python 3.12.9 or higher
-- Required API keys
-  - LLM  
-    This repo uses Langchain to wrap models, giving you flexibility in the model you choose.  It's currently set up using Groq as a provider, but can be easily switched to any  provider/model that Langchain supports
-  - Tavily  
-    Tavily is the web search application used for web search.  This is needed to enable the RAG Assistant to have the ability to search the web.  It is also used for scraping the web for content for your vector database
-  - HuggingFace  
-    A HF log in is needed for the embedding models
+---
+
+## 🤖 What is RAG?
+
+**RAG (Retrieval-Augmented Generation)** is a method where documents are split into vector embeddings and stored in a vector database. At runtime, relevant context is retrieved and provided to a language model to enrich its responses with domain-specific knowledge, enabling accurate answers beyond the model's training data.
+
+---
+
+## 💡 Why This Project?
+
+I'm currently enrolled in a Masters program for Data Science at University of San Diego, taking a class called Applied Large Language Models for Data Science. The original syllabus called for two texts, including *"Blueprints for Text Analytics in Python"*. However, the syllabus was revamped and now only requires the other text.
+
+Since I already had the Blueprints book, instead of letting it collect digital dust on my hard drive, I figured it would be put to better use in this project. This way, I could still learn from it without worrying about reading the whole thing and demonstrate a practical RAG implementation in the process.
+
+---
+
+## ✨ Features
+
+- **🌐 Web Scraping**: Automated content extraction from websites using Tavily API
+- **🧹 LLM-Powered Cleaning**: Intelligent content cleanup and organization using language models
+- **📊 Vector Storage**: Efficient document storage using Chroma DB with HuggingFace embeddings
+- **💬 Interactive Chat Interface**: User-friendly Gradio UI for querying your knowledge base
+- **🔧 Modular Design**: Use individual components or the complete pipeline
+- **📝 Flexible Prompts**: YAML-based prompt templates for easy customization
+- **📈 Comprehensive Logging**: Track errors, metadata, and LLM reasoning for debugging
+- **🔄 Multiple RAG Strategies**: Customizable search and retrieval approaches
+
+---
+
+## 🚀 Installation & Quick Start
+
+### Prerequisites
+
+- **Python 3.12.9** or higher
 - Basic understanding of: LLMs, vector databases, web APIs
 
-## Project Overview & Architecture
+### Required API Keys
 
-High level overview of the steps in the pipeline.  It was designed to be modular so each step can be utilized in sequence or individually.
+You'll need API keys from the following providers:
+
+| Provider | Purpose | Get Your Key |
+|----------|---------|--------------|
+| **Groq** | LLM provider (via Langchain). Can be swapped for any Langchain-supported provider/model | [Get Groq API Key](https://console.groq.com/keys) |
+| **Tavily** | Web search and scraping for content extraction and RAG assistant web search capability | [Get Tavily API Key](https://app.tavily.com/home) |
+| **HuggingFace** | Embedding models for vector storage | [Get HF Token](https://huggingface.co/settings/tokens) |
+
+### Installation Steps
+
+**1. Install UV package manager** (if you don't have it):
+```bash
+pip install uv
+```
+
+**2. Clone the repository**:
+```bash
+git clone https://github.com/tkbarb10/ai_essentials_rag.git
+cd ai_essentials_rag
+```
+
+**3. Set up your virtual environment**:
+```bash
+uv venv
+uv sync
+```
+
+**4. Configure your environment variables**:
+
+Create a `.env` file in the root directory with your API keys:
+
+```env
+# LLM Provider (Groq example)
+GROQ_API_KEY=your_groq_api_key_here
+
+# Web Search & Scraping
+TAVILY_API_KEY=your_tavily_api_key_here
+
+# Embeddings
+HUGGINGFACE_TOKEN=your_hf_token_here
+```
+
+**5. Verify installation**:
+
+Run the Gradio app to test your setup:
+```bash
+python app.py
+```
+
+The interface should launch in your browser at `http://localhost:7860`
+
+> **✅ Success!** If you see the Gradio interface, you're ready to start building your RAG pipeline.
+
+---
+
+## 📁 Project Structure
+
+```
+ai_essentials_rag/
+├── app.py                          # Gradio app entry point
+├── .env                            # API keys and configuration (create this)
+├── pyproject.toml                  # Project dependencies
+├── README.md                       # This file
+│
+├── config/                         # Configuration files
+│   ├── paths.py                    # File path configurations
+│   └── load_env.py                 # Load your API keys and model configurations
+│
+├── ingestion/                      # Stage 1: Data ingestion
+│   ├── scrape.py                   # Web scraping with Tavily
+│   ├── clean.py                    # LLM-powered content cleaning
+│   └── prep.py                     # Content organization & formatting
+│
+├── vector_store/                   # Stage 2: Vector database
+│   ├── initialize.py               # Create/load vector store
+│   └── insert.py                   # Document splitting & insertion
+│
+├── rag_assistant/                  # Stage 3: RAG interface
+│   ├── rag_assistant.py            # Core RAG assistant class
+│   └── gradio_interface.py         # Gradio UI wrapper
+│
+├── prompts/                        # Prompt templates
+│   ├── components.yaml             # Reusable prompt components
+│   ├── ingestion_prompts.yaml      # Data processing prompts
+│   └── rag_prompts.yaml            # RAG assistant personalities
+│
+├── outputs/                        # Generated outputs
+│   ├── logs/                       # Application logs
+│   ├── scraped_content.txt        # Raw scraped data
+│   └── processed_content.txt      # Cleaned & organized data
+│
+├── data/                           # Input data
+│   └── your_file/                 
+│
+└── assets/                         # Project assets
+    └── rag_pipeline.svg            # Architecture diagram
+```
+
+---
+
+## 🏗️ Detailed Architecture
+
+High-level overview of the pipeline stages. The system is designed to be **modular**—each stage can be used sequentially or independently.
 
 ![RAG Pipeline Diagram](assets/rag_pipeline.svg)
 
 ### Stage 1: Ingestion
 
-In the `ingestion/` directory you'll find three scripts: `scrape.py`, `clean.py`, `prep.py`.  All three can be utilized through the CLI or within a notebook
+Located in the `ingestion/` directory. All three scripts can be used via CLI or imported into a notebook.
 
- - `scrape.py`  
-    This script uses the Tavily web API to map and extract content from a root URL.  You first provide a root url that you want to start with, and the `.map()` method will extract every url it can find from that url to within a certain depth.  You can provide instructions to the mapper, change the maximum depth it'll search to (default is 5), or adjust any other parameter than the `.map()` accepts.  This will output a link of urls that can then be iterated through to extract their raw content via the `.extract()` method.  The result is a list of raw strings scraped from each url in the list
+#### 🌐 `scrape.py`
 
-- `clean.py`  
-    The resulting list of content will be messy.  There will be links to random images, html tags, lots of dead space, etc.  Instead of having to figure out every edge case to clean this up, we can leverage the power of LLM's.  This script first creates a list of message payloads for each string and then iterates through making calls to an LLM prompting it to clean up the raw string and returning just the content we're interested in.  This can be a costly process so messages that go beyond your rate limits are skipped.  Your chosen model is pinged first to get the rate limit for your account.  The final result is a single string with headers to denote individual sites.
+Uses the **Tavily API** to map and extract content from websites.
 
-- `prep.py`  
-    After cleaning the strings, there is bound to be a lot of redundant and disorganized content.  So this step utilizes a language model to sort through the provided information, remove redundant and useless content, and organize the remaining into categories that would be useful for storage into a vector database.  These categories can be provided by you, or can be left to the LLM to decide.  The output will be a single string organized in Markdown format (important for the text splitting process)
+**How it works:**
+1. Provide a root URL to start from
+2. The `.map()` method extracts every URL found from that page up to a specified depth (default: 5 levels)
+3. The `.extract()` method iterates through the URL list and retrieves raw content
+
+**Key Features:**
+- Configurable search depth
+- Custom mapping instructions
+- Outputs list of raw content strings from each URL
+
+**Input:** Root URL  
+**Output:** List of raw HTML/text strings
+
+---
+
+#### 🧹 `clean.py`
+
+Leverages **LLM power** to clean messy scraped content.
+
+**Why use an LLM?** Raw scraped content contains HTML tags, broken formatting, random image links, and dead space. Instead of handling every edge case manually, we let the LLM intelligently extract only the useful content.
+
+**How it works:**
+1. Creates message payloads for each raw string
+2. Iterates through and prompts the LLM to clean each string
+3. Respects rate limits (checks your account limits first and skips messages that exceed them)
+4. Combines cleaned content into a single string with headers denoting individual sites
+
+**Input:** List of raw content strings  
+**Output:** Single cleaned string with site headers
+
+---
+
+#### 📊 `prep.py`
+
+Uses an **LLM to organize and deduplicate** cleaned content for optimal vector storage.
+
+**How it works:**
+1. Analyzes the cleaned content to identify redundant or useless information
+2. Removes duplicates and irrelevant content
+3. Organizes remaining content into categories (you can specify categories or let the LLM decide)
+4. Formats output in **Markdown** (important for the text splitting process in Stage 2)
+
+**Input:** Cleaned content string  
+**Output:** Organized Markdown-formatted document
+
+---
 
 ### Stage 2: Vector Store
 
-There are two scripts here to `initialize` the vector store and `insert` RAG material into it.  Like before, these scripts can be utilized through the CLI or imported into your notebook
+Located in the `vector_store/` directory. Scripts can be used via CLI or imported into notebooks.
 
-- `initialize.py`  
-    Using a Langchain wrapper for Chroma DB, this script loads a Hugging Face embedding model and instantiates a vector store with a name and location of your choosing.  If you already have a vector store you'd like to you, just pass the path and name of the store and it will be activated
+#### 🗄️ `initialize.py`
 
-- `insert.py`  
-    This script takes the previous one a step further and also accepts a path to the documents you wish to upload, splits them, and adds to the store.  The splitting process first uses Langchains `MarkdownHeaderTextSplitter` to split the text on headers and subheaders.  The reason for this is because the method automatically recognizes these headers and adds them as metadata.  If your content isn't in Markdown format, don't worry. It'll pass through the markdown splitter into the next step which uses `RecursiveCharacterTextSplitter` which will then chunk the text recursively within the markdown headers or without.  The default chunk is 750 tokens with an overlap between chunks of 150.
+Creates or loads a **Chroma DB vector store** using Langchain wrappers.
+
+**How it works:**
+1. Loads a HuggingFace embedding model
+2. Instantiates a vector store with your chosen name and location
+3. If a store already exists at the path, it loads that instead of creating a new one
+
+**Input:** Store name, location, embedding model  
+**Output:** Initialized Chroma DB vector store
+
+---
+
+#### 📥 `insert.py`
+
+Processes documents and adds them to your vector store.
+
+**How it works:**
+
+**Two-stage splitting process:**
+
+1. **MarkdownHeaderTextSplitter**
+   - Splits text on headers and subheaders
+   - Automatically adds headers as metadata
+   - Preserves document structure
+
+2. **RecursiveCharacterTextSplitter**
+   - Chunks text within markdown sections (or entire doc if no markdown)
+   - Default: 750 tokens per chunk
+   - 150 token overlap between chunks for context continuity
+
+> **💡 Note:** If your content isn't in Markdown format, it passes through the first splitter harmlessly and gets chunked by the recursive splitter.
+
+**Input:** Document path, vector store  
+**Output:** Documents split and stored in vector database
+
+---
 
 ### Stage 3: RAG Assistant
 
-There are two classes for this step.  `rag_assistant` binds the previous steps with an LLM to query and can be utilized through the CLI or imported into a notebook.  `gradio_interface` allows you to interact with the RAG Assistant through a `Gradio` app.
+Located in the `rag_assistant/` directory. Combines previous stages with an LLM for querying.
 
-- `rag_assistant.py`  
-    This script contains a class called RagAssistant.  This combines all the previous steps and has a `topic` and `prompt_template` argument.  The `topic` is a string you can insert describing what your vector store contains (e.g "Blueprints for Text Analytics in Python textbook") and `prompt_template` is the prompt for the 'personality' you want the model to have.  The default is `educational_assistant`.  Once set up, you can ask the model any question you like and it'll respond using the context provided by the vector store
+#### 🤖 `rag_assistant.py`
 
-- `gradio_interface.py` -> `app.py`
-    This class wraps the RAG Assistant in an interface to adapt it to Gradio.  It can be launched with the `app.py` script through the CLI 
+The **RagAssistant class** brings everything together.
 
-## Installation & Setup
+**Key Parameters:**
+- **`topic`**: Description of what your vector store contains  
+  *Example:* `"Blueprints for Text Analytics in Python textbook"`
+  
+- **`prompt_template`**: The 'personality' you want the assistant to have  
+  *Default:* `educational_assistant`  
+  *Available:* `educational_assistant`, `qa_assistant`
 
-If you don't already have it, install `uv` package then clone the repo
-```python
-pip install uv
+**How it works:**
+1. Accepts user questions
+2. Queries the vector store for relevant context
+3. Combines context with the prompt template
+4. Returns LLM-generated response based on retrieved information
 
-git clone https://github.com/tkbarb10/ai_essentials_rag.git
-cd ai_essentials_rag
-```
+**Input:** User question  
+**Output:** Context-aware LLM response
 
-Run `uv venv` to set up your env then `uv sync` to install dependencies
+---
 
-Set up your `.env` file.  You'll need at least one model API key
+#### 🖥️ `gradio_interface.py` → `app.py`
 
-To run every script except the gradio interface you can access it as a module
+Wraps the RAG Assistant in a **Gradio web interface** for easy interaction.
 
-```python
-python -m directory.script
-```
+**Features:**
+- Clean chat interface
+- Conversation history
+- Easy deployment
 
-To run the Gradio app
-
-```python
+**Launch:**
+```bash
 python app.py
 ```
 
-## Configuration & Customization
+The app will be accessible at `http://localhost:7860`
 
-- YAML prompt system
-    Prompts can be found in the prompts directory.  Feel free to add and adjust as you see fit for your use case
+---
 
-    - `components.yaml`
-        Reusable components that can be used across prompt templates such as tone, reasoning strategy, and available tools
+## 💻 Usage Examples
+
+### Running Scripts as Modules
+
+All scripts except the Gradio interface can be run as modules:
+
+```bash
+python -m directory.script
+```
+
+### Example 1: Scraping Web Content
+
+**Via CLI:**
+```bash
+python -m ingestion.scrape
+```
+
+**In Python:**
+```python
+from ingestion.scrape import scrape_website
+
+# Scrape content from a website
+urls = scrape_website(
+    root_url="https://example.com",
+    max_depth=3,
+    instructions="Focus on documentation pages"
+)
+```
+
+### Example 2: Cleaning Scraped Content
+
+**Via CLI:**
+```bash
+python -m ingestion.clean
+```
+
+**In Python:**
+```python
+from ingestion.clean import clean_content
+
+# Clean raw content with LLM
+cleaned = clean_content(
+    raw_content_list=urls,
+    model="groq/llama-3-70b"
+)
+```
+
+### Example 3: Preparing for Vector Storage
+
+**Via CLI:**
+```bash
+python -m ingestion.prep
+```
+
+**In Python:**
+```python
+from ingestion.prep import prepare_content
+
+# Organize and format content
+prepared = prepare_content(
+    cleaned_content=cleaned,
+    categories=["Installation", "Usage", "API Reference"]
+)
+```
+
+### Example 4: Creating a Vector Store
+
+**In Python:**
+```python
+from vector_store.initialize import initialize_vector_store
+
+# Create a new vector store
+vector_store = initialize_vector_store(
+    store_name="my_knowledge_base",
+    store_path="./data/vector_stores"
+)
+```
+
+### Example 5: Inserting Documents
+
+**In Python:**
+```python
+from vector_store.insert import insert_documents
+
+# Add documents to vector store
+insert_documents(
+    document_path="./outputs/processed_content/organized_content.md",
+    vector_store=vector_store,
+    chunk_size=750,
+    chunk_overlap=150
+)
+```
+
+### Example 6: Querying the RAG Assistant
+
+**In Python:**
+```python
+from rag_assistant.rag_assistant import RagAssistant
+
+# Initialize assistant
+assistant = RagAssistant(
+    topic="Blueprints for Text Analytics in Python textbook",
+    prompt_template="educational_assistant"
+)
+
+# Ask questions
+response = assistant.query("What is tokenization?")
+print(response)
+```
+
+### Example 7: Launching the Gradio Interface
+
+**Via CLI:**
+```bash
+python app.py
+```
+
+Then open your browser to `http://localhost:7860` and start chatting!
+
+---
+
+## ⚙️ Configuration & Customization
+
+### YAML Prompt System
+
+All prompts are located in the `prompts/` directory and use YAML format for easy customization.
+
+#### 📝 `components.yaml`
+
+Contains **reusable components** that can be mixed and matched across prompt templates:
+
+- **Tone**: Professional, casual, educational, etc.
+- **Reasoning strategy**: Chain-of-thought, step-by-step, etc.
+- **Available tools**: Web search, document retrieval, etc.
+
+**Example structure:**
+```yaml
+tones:
+  educational: "Explain concepts clearly with examples..."
+  professional: "Maintain formal business communication..."
+
+reasoning_strategies:
+  step_by_step: "Break down your response into clear steps..."
+  chain_of_thought: "Show your reasoning process..."
+```
+
+---
+
+#### 🌐 `ingestion_prompts.yaml`
+
+Prompts used for **scraping and preparing data** from the web:
+
+- Content cleaning instructions
+- Organization strategies
+- Category generation prompts
+
+**Customization:** Adjust these to change how content is processed and organized for your specific use case.
+
+---
+
+#### 🤖 `rag_prompts.yaml`
+
+Prompt templates that define your **RAG assistant's personality**:
+
+**Available Templates:**
+
+1. **`educational_assistant`**  
+   - Patient, detailed explanations
+   - Uses examples and analogies
+   - Encourages learning and understanding
+
+2. **`qa_assistant`**  
+   - Concise, direct answers
+   - Professional corporate chatbot style
+   - Focuses on quick, accurate responses
+
+**Creating Custom Templates:**
+
+```yaml
+custom_assistant:
+  system: |
+    You are a [role] specializing in [domain].
+    Your goal is to [objective].
     
-    - `ingestion_prompts.yaml`
-        The prompts used in scraping prepping the data from the web
-    
-    - `rag_prompts.yaml`
-        This file contains the prompt templates that can be swapped in and out depending on the purpose of your rag pipeline.  The two currently available are `qa_assistant` (ie corporate chatbot) and `educational_assistant`
+  tone: professional
+  reasoning: step_by_step
+  tools:
+    - web_search
+    - document_retrieval
+```
 
-## Logging
+Simply add your custom template to the file and reference it when initializing the RAG Assistant:
 
-Logging is set up at each step to track errors and other metadata (such as LLM reasoning to aid with prompt tuning).  Logs get saved to the [Logs File](outputs/logs/) directory and are saved under different file names depending on which component was logging data
+```python
+assistant = RagAssistant(
+    topic="Your topic",
+    prompt_template="custom_assistant"
+)
+```
 
-## Troubleshooting
+---
 
-Common errors are issues with rate limits and file paths.  Ensure you're API keys and model choices are correct and check the `paths.py` file in `config/`.
+### Vector Store Configuration
 
-Most likely though the biggest issues you'll find are with the vector store and the LLM responses.  This isn't a rules based process and it may take some iteration to tune the vector store search and queries to your liking.  Play around with how the documents are stored by changing the chunk size and overlap.  Maybe you'll find that adding richer metadata to return to the model will improve response.  Change the vector store search parameters.  The current default is a **similarity** search with **k = 3**, but maybe you'll have better results by increasing **k**.  Or perhaps changing the search type to ![max marginal relevance](https://reference.langchain.com/python/langchain_core/vectorstores/#langchain_core.vectorstores.base.VectorStore.max_marginal_relevance_search) will yield better results for you.  Have fun with it!
+Customize how documents are stored and retrieved:
 
-## Future Directions/Limitations
-The goal behind this repo set up was to be able to extend it for multi-agent orchestration for the Ready Tensor Agentic AI in Production certification.  To that end there are some limitations we hope to adjust in the next iteration
+**Chunking Parameters:**
+- `chunk_size`: Number of tokens per chunk (default: 750)
+- `chunk_overlap`: Token overlap between chunks (default: 150)
 
-- Adding more prompt templates and improving upon existing ones.  
-- Extending the number of tools the model has access to
-- Currently this project only handles `.txt` and `.md` files so increasing the number of file types that are supported for splitting and ingesting
-- The `Gradio` interface at the moment is pretty bare bones, so I hope to improve the interface and modernize it more to make it a legit ui
-- The biggest change I'm going to make is adding different RAG strategies.  This is currently a basic RAG pipeline where we query the vector store and pass the context on to the model. Adding different strategies such as graph rag or adaptive rag would widen the potential use cases
+**Search Parameters:**
+- Search type: `similarity` (default), `mmr` (max marginal relevance)
+- `k`: Number of documents to retrieve (default: 3)
 
-## Contributing
+**Example:**
+```python
+from vector_store.insert import insert_documents
 
-I'd like to thank our AI overlords for their help and service in making projects like this possible. 
+insert_documents(
+    document_path="./my_docs.md",
+    vector_store=store,
+    chunk_size=1000,  # Larger chunks
+    chunk_overlap=200  # More overlap
+)
+```
 
-## License
+---
 
-[License](LICENSE)
+## 📊 Logging
 
-## References & Resources
+Comprehensive logging is set up at each stage to track errors, metadata, and LLM reasoning.
 
-"Blueprints for Text Analytics Using Python by Jens Albrecht, Sidharth Ramachandran, and Christian Winkler (O'Reilly, 2021), 978-1-492-07408-3."
+### Log Locations
+
+All logs are saved to the `outputs/logs/` directory with different files based on component:
+
+```
+outputs/logs/
+├── ingestion.log       # Web scraping, cleaning, prep
+├── vector_store.log    # Database operations
+├── rag_assistant.log   # Query processing and responses
+└── errors.log          # Critical errors across all components
+```
+
+### What Gets Logged
+
+- **Ingestion**: URLs scraped, cleaning progress, rate limit hits
+- **Vector Store**: Documents inserted, chunk counts, retrieval queries
+- **RAG Assistant**: User queries, retrieved context, LLM reasoning chains
+- **Errors**: Stack traces, API failures, configuration issues
+
+### Log Levels
+
+- `DEBUG`: Detailed diagnostic information
+- `INFO`: General informational messages
+- `WARNING`: Warning messages (e.g., approaching rate limits)
+- `ERROR`: Error messages that don't stop execution
+- `CRITICAL`: Critical errors that halt the process
+
+> **💡 Tip:** Check the LLM reasoning logs when tuning prompts—they show the model's thought process and can help identify prompt improvements.
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+#### ❌ API Key Errors
+
+**Problem:** `Authentication failed` or `Invalid API key`
+
+**Solutions:**
+1. Verify your `.env` file is in the root directory
+2. Check that API keys are correctly formatted (no extra spaces)
+3. Confirm keys are active on the provider's dashboard
+4. Try regenerating the API key
+
+---
+
+#### ❌ Rate Limit Errors
+
+**Problem:** `Rate limit exceeded` during cleaning/processing
+
+**Solutions:**
+1. The `clean.py` script automatically checks rate limits and skips messages that exceed them
+2. Wait for your rate limit to reset (usually hourly)
+3. Consider upgrading your API plan
+4. Process content in smaller batches
+
+---
+
+#### ❌ File Path Issues
+
+**Problem:** `FileNotFoundError` or `Path not found`
+
+**Solutions:**
+1. Check the `config/paths.py` file for correct path configurations
+2. Ensure you're running scripts from the project root directory
+3. Verify that output directories exist (create them if needed)
+4. Use absolute paths if relative paths are causing issues
+
+---
+
+#### ❌ Vector Store Not Returning Results
+
+**Problem:** RAG assistant returns generic responses or "I don't know"
+
+**Solutions:**
+
+**1. Check if documents were actually inserted:**
+```python
+# Verify document count
+print(f"Documents in store: {vector_store._collection.count()}")
+```
+
+**2. Adjust search parameters:**
+```python
+# Increase number of retrieved documents
+retriever = vector_store.as_retriever(
+    search_type="similarity",
+    k=5  # Try increasing from default of 3
+)
+
+# Or try max marginal relevance search
+retriever = vector_store.as_retriever(
+    search_type="mmr",
+    k=3,
+    fetch_k=10  # Fetch more candidates before filtering
+)
+```
+
+**3. Tune chunking strategy:**
+- **Smaller chunks** (400-500 tokens): Better for precise, specific queries
+- **Larger chunks** (1000-1500 tokens): Better for broader context
+- **More overlap** (200-300 tokens): Better context continuity
+
+**4. Add richer metadata:**
+Modify the splitting process to include more metadata fields (document source, section titles, dates, etc.)
+
+**5. Review retrieved context:**
+```python
+# Debug what's being retrieved
+docs = vector_store.similarity_search(query, k=3)
+for i, doc in enumerate(docs):
+    print(f"Doc {i}: {doc.page_content[:200]}...")
+    print(f"Metadata: {doc.metadata}\n")
+```
+
+---
+
+#### ❌ Poor Response Quality
+
+**Problem:** RAG assistant gives irrelevant or low-quality answers
+
+**Solutions:**
+1. **Improve your prompts**: Edit templates in `prompts/rag_prompts.yaml`
+2. **Check retrieved context**: Use the debug method above to see what context is being passed to the LLM
+3. **Adjust embedding model**: Try different HuggingFace embedding models
+4. **Review source documents**: Ensure the content in your vector store is high-quality and relevant
+5. **Experiment with search types**: Switch between `similarity` and `mmr` search
+
+---
+
+#### ❌ Gradio Interface Won't Launch
+
+**Problem:** `Address already in use` or interface doesn't open
+
+**Solutions:**
+```bash
+# Specify a different port
+python app.py --port 7861
+
+# Or kill existing process on port 7860
+lsof -ti:7860 | xargs kill -9  # macOS/Linux
+netstat -ano | findstr :7860   # Windows (then kill PID)
+```
+
+---
+
+### Still Having Issues?
+
+1. Check the relevant log file in `outputs/logs/`
+2. Enable DEBUG logging for more detailed output
+3. Verify all dependencies are installed: `uv sync`
+4. Ensure Python version is 3.12.9 or higher
+5. Try running a minimal example to isolate the issue
+
+> **💡 Pro Tip:** Most issues with RAG systems come down to **vector store tuning**. Don't be afraid to experiment with chunk sizes, overlap, search parameters, and metadata. It's not a rules-based process—iteration is key!
+
+---
+
+## 🚀 Future Directions & Limitations
+
+This project was designed to be extensible for multi-agent orchestration and the Ready Tensor Agentic AI in Production certification. Here are planned improvements and current limitations:
+
+### 🎯 Planned Improvements
+
+#### **Enhanced Prompt System**
+- [ ] Add more prompt templates (technical writer, code reviewer, research assistant)
+- [ ] Improve existing templates based on user feedback
+- [ ] Create prompt template builder/validator
+
+#### **Expanded Tool Access**
+- [ ] Web search integration enhancements
+- [ ] Calculator and computation tools
+- [ ] Code execution sandbox
+- [ ] External API integrations
+
+#### **Broader File Support**
+- [ ] PDF processing (currently only `.txt` and `.md`)
+- [ ] DOCX and other document formats
+- [ ] Image and multimodal content
+- [ ] Audio transcription and processing
+
+#### **UI Modernization**
+- [ ] Enhanced Gradio interface with better styling
+- [ ] Conversation history and export
+- [ ] Multi-user support
+- [ ] Mobile-responsive design
+- [ ] Dark mode
+
+#### **Advanced RAG Strategies**
+This is currently a **basic RAG pipeline** (query → retrieve → generate). Future versions will implement:
+
+- **Graph RAG**: Knowledge graph-based retrieval for complex relationships
+- **Adaptive RAG**: Dynamic retrieval strategies based on query complexity
+- **Hybrid Search**: Combining vector similarity with keyword search
+- **Multi-hop Reasoning**: Following chains of reasoning across documents
+- **Query Decomposition**: Breaking complex queries into sub-queries
+- **Self-RAG**: Model evaluates its own retrieval relevance
+
+### ⚠️ Current Limitations
+
+- **File Format Support**: Limited to text and markdown files
+- **RAG Strategy**: Single basic retrieval approach
+- **UI**: Minimal Gradio interface
+- **Scalability**: Not optimized for very large document collections (>100k documents)
+- **Multimodal**: No support for images, audio, or video in RAG context
+- **Multi-language**: Primarily English-optimized
+
+### 🔮 Long-term Vision
+
+Transform this into a **production-ready agentic AI system** with:
+- Orchestrated multi-agent workflows
+- Enterprise-scale document processing
+- Real-time knowledge updates
+- Advanced monitoring and analytics
+- Deployment templates (Docker, K8s)
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Whether it's bug fixes, new features, documentation improvements, or RAG strategy implementations, I'd love to collaborate.
+
+### How to Contribute
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Special Thanks
+
+I'd like to thank our AI overlords for their help and service in making projects like this possible. 🤖
+
+---
+
+## 📄 License
+
+This project is licensed under the Apcahe 2.0 License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 📚 References & Resources
+
+### Primary Reference
+"Blueprints for Text Analytics Using Python" by Jens Albrecht, Sidharth Ramachandran, and Christian Winkler (O'Reilly, 2021), 978-1-492-07408-3.
+
+### Tools & Frameworks
+- [Langchain](https://python.langchain.com/) - LLM application framework
+- [Chroma DB](https://www.trychroma.com/) - Vector database
+- [Gradio](https://www.gradio.app/) - ML web interfaces
+- [Tavily](https://tavily.com/) - Web search API
+- [HuggingFace](https://huggingface.co/) - Embedding models
+
+### Further Reading
+- [RAG Explained](https://arxiv.org/abs/2005.11401) - Original RAG paper
+- [Langchain RAG Tutorials](https://python.langchain.com/docs/use_cases/question_answering/)
+- [Building Production RAG Systems](https://www.pinecone.io/learn/retrieval-augmented-generation/)
+
+---
+
+**Questions or feedback?** Open an issue or reach out on [GitHub](https://github.com/tkbarb10/ai_essentials_rag)!

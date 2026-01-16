@@ -32,7 +32,7 @@ except Exception as e:
     print(f"Warning: Could not load prompts from {PROMPTS_DIR}. Using default.")
     scrape_prompt = "Clean this string of html tags and other web artifacts"
 
-# change this to accomodate different providers
+# change this to accommodate different providers
 client = Groq()
 
 def create_message_payload(web_content: List[str] | str, prompt: str):
