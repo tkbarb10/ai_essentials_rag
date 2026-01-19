@@ -2,15 +2,15 @@
 .claude
 .gradio
 .vscode
-*__pycache__
-*./gradio_logs.log
+*/__pycache__
+*.log
 *tests
 pytest.ini
 uv.lock
 *.txt
 *.ipynb
-data/
-*chroma/
+data/**/*
+*chroma
 *.csv
 *.json
 
