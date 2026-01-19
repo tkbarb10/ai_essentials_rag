@@ -169,7 +169,7 @@ ai_essentials_rag/
 
 ## 🏗️ Detailed Architecture
 
-High-level overview of the pipeline stages. The system is designed to be **modular**—each stage can be used sequentially or independently.
+High-level overview of the pipeline stages. The system is designed to be **modular**.  Each stage can be used sequentially or independently.
 
 ![RAG Pipeline Diagram](assets/rag_pipeline.svg)
 
@@ -190,6 +190,7 @@ Uses the **Tavily API** to map and extract content from websites.
 - Configurable search depth
 - Custom mapping instructions
 - Outputs list of raw content strings from each URL
+- Documentation for how to use the method and other arguments to pass [tavily.map](https://docs.tavily.com/documentation/api-reference/endpoint/map)
 
 **Input:** Root URL  
 **Output:** List of raw HTML/text strings
@@ -198,9 +199,9 @@ Uses the **Tavily API** to map and extract content from websites.
 
 #### 🧹 `clean.py`
 
-Leverages **LLM power** to clean messy scraped content.
+Leverages an LLM to declutter the scraped content.
 
-**Why use an LLM?** Raw scraped content contains HTML tags, broken formatting, random image links, and dead space. Instead of handling every edge case manually, we let the LLM intelligently extract only the useful content.
+**Why use an LLM?** Raw scraped content contains HTML tags, broken formatting, random image links, and dead space. Instead of handling every edge case manually, we let the LLM deal with extracting only the useful content.
 
 **How it works:**
 1. Creates message payloads for each raw string
@@ -237,12 +238,14 @@ Located in the `vector_store/` directory. Scripts can be used via CLI or importe
 Creates or loads a **Chroma DB vector store** using Langchain wrappers.
 
 **How it works:**
-1. Loads a HuggingFace embedding model
+1. Loads a HuggingFace embedding model. See this link for [model_kwargs](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer) and [encode_kwargs](https://sbert.net/docs/package_reference/sentence_transformer/SentenceTransformer.html#sentence_transformers.SentenceTransformer.encode) to customize
 2. Instantiates a vector store with your chosen name and location
 3. If a store already exists at the path, it loads that instead of creating a new one
 
 **Input:** Store name, location, embedding model  
 **Output:** Initialized Chroma DB vector store
+
+> **💡 Note:** How to configure the [search space](https://docs.trychroma.com/docs/collections/configure#hnsw-index-configuration) for your collection
 
 ---
 
@@ -449,7 +452,7 @@ Contains **reusable components** that can be mixed and matched across prompt tem
 
 - **Tone**: Professional, casual, educational, etc.
 - **Reasoning strategy**: Chain-of-thought, step-by-step, etc.
-- **Available tools**: Web search, document retrieval, etc.
+- **Available tools**: Web search
 
 **Example structure:**
 ```yaml
@@ -554,10 +557,9 @@ All logs are saved to the `outputs/logs/` directory with different files based o
 
 ```
 outputs/logs/
-├── ingestion.log       # Web scraping, cleaning, prep
-├── vector_store.log    # Database operations
+├── prompt_builder.log  # Errors with building the prompt, and outputs final prompt
 ├── rag_assistant.log   # Query processing and responses
-└── errors.log          # Critical errors across all components
+└── gradio_logs.log      # Errors associated with loading and using the app
 ```
 
 ### What Gets Logged
@@ -575,7 +577,7 @@ outputs/logs/
 - `ERROR`: Error messages that don't stop execution
 - `CRITICAL`: Critical errors that halt the process
 
-> **💡 Tip:** Check the LLM reasoning logs when tuning prompts—they show the model's thought process and can help identify prompt improvements.
+> **💡 Tip:** Check the LLM reasoning logs when tuning prompts. They show the model's 'thought' process and can help identify prompt improvements.
 
 ---
 
@@ -649,7 +651,7 @@ retriever = vector_store.as_retriever(
 
 **3. Tune chunking strategy:**
 - **Smaller chunks** (400-500 tokens): Better for precise, specific queries
-- **Larger chunks** (1000-1500 tokens): Better for broader context
+- **Larger chunks** (1000-1500 tokens): Better for broader context (like if you have a textbook stored)
 - **More overlap** (200-300 tokens): Better context continuity
 
 **4. Add richer metadata:**
@@ -716,7 +718,6 @@ This project was designed to be extensible for multi-agent orchestration and the
 #### **Enhanced Prompt System**
 - [ ] Add more prompt templates (technical writer, code reviewer, research assistant)
 - [ ] Improve existing templates based on user feedback
-- [ ] Create prompt template builder/validator
 
 #### **Expanded Tool Access**
 - [ ] Web search integration enhancements
@@ -727,15 +728,16 @@ This project was designed to be extensible for multi-agent orchestration and the
 #### **Broader File Support**
 - [ ] PDF processing (currently only `.txt` and `.md`)
 - [ ] DOCX and other document formats
-- [ ] Image and multimodal content
-- [ ] Audio transcription and processing
+
+#### **Logging Process**
+- [ ] Add returned context with query to logging
+- [ ] Post processing method for logs to make that data useful
 
 #### **UI Modernization**
 - [ ] Enhanced Gradio interface with better styling
 - [ ] Conversation history and export
 - [ ] Multi-user support
 - [ ] Mobile-responsive design
-- [ ] Dark mode
 
 #### **Advanced RAG Strategies**
 This is currently a **basic RAG pipeline** (query → retrieve → generate). Future versions will implement:
@@ -754,7 +756,6 @@ This is currently a **basic RAG pipeline** (query → retrieve → generate). Fu
 - **UI**: Minimal Gradio interface
 - **Scalability**: Not optimized for very large document collections (>100k documents)
 - **Multimodal**: No support for images, audio, or video in RAG context
-- **Multi-language**: Primarily English-optimized
 
 ### 🔮 Long-term Vision
 
@@ -763,7 +764,6 @@ Transform this into a **production-ready agentic AI system** with:
 - Enterprise-scale document processing
 - Real-time knowledge updates
 - Advanced monitoring and analytics
-- Deployment templates (Docker, K8s)
 
 ---
 
@@ -781,7 +781,7 @@ Contributions are welcome! Whether it's bug fixes, new features, documentation i
 
 ### Special Thanks
 
-I'd like to thank our AI overlords for their help and service in making projects like this possible. 🤖
+I'd like to thank our AI overlords for their help and service in making projects like this possible.
 
 ---
 
@@ -804,10 +804,8 @@ This project is licensed under the Apcahe 2.0 License - see the [LICENSE](LICENS
 - [HuggingFace](https://huggingface.co/) - Embedding models
 
 ### Further Reading
-- [RAG Explained](https://arxiv.org/abs/2005.11401) - Original RAG paper
+- [RAG Explained](https://app.readytensor.ai/lessons/introduction-to-rag-retrieval-augumented-generation-systems-aaidc-week2-lecture-4-3Ht58iNXuvS7)
 - [Langchain RAG Tutorials](https://python.langchain.com/docs/use_cases/question_answering/)
-- [Building Production RAG Systems](https://www.pinecone.io/learn/retrieval-augmented-generation/)
-
 ---
 
 **Questions or feedback?** Open an issue or reach out on [GitHub](https://github.com/tkbarb10/ai_essentials_rag)!

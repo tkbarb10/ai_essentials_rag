@@ -1,11 +1,23 @@
-from groq import Groq
-from config.load_env import load_env
+import httpx
+from config.load_env import MODEL_CONFIG
+from langchain.chat_models import init_chat_model # type: ignore
 
-load_env()
+class UniversalRateLimitTracker:
+    def __init__(self):
+        self.limits = {}
 
-client = Groq()
+    def __call__(self, response: httpx.Response):
+        # Dictionary comprehension to grab anything containing 'ratelimit'
+        self.limits = {
+            k.lower(): v 
+            for k, v in response.headers.items() 
+            if "remaining-tokens" in k.lower()
+        }
 
-def ping(model: str):
+tracker = UniversalRateLimitTracker()
+client = httpx.Client(event_hooks={'response': [tracker]})
+
+def ping():
     """Ping the LLM to retrieve the token rate limit header.
 
     Sends a lightweight completion request to the Groq client and returns the
@@ -20,10 +32,10 @@ def ping(model: str):
     Raises:
         Exceptions from the client may be raised if the request fails.
     """
-    ping = client.chat.completions.with_raw_response.create(
-        messages=[{"role": "user", "content": "p"}],
-        model=model, 
-        max_completion_tokens=1 
-    )
+    model = init_chat_model(**MODEL_CONFIG, http_client=client)
+    response = model.invoke('p', max_tokens=1)
 
-    return ping.headers.get('x-ratelimit-limit-tokens')
+    keys = list(tracker.limits.keys())[0]
+    
+
+    return tracker.limits.get(keys, 8000)

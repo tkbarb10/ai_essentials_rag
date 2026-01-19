@@ -3,10 +3,10 @@
 
 scrape_prompt:
   role: |
-    Web scraping bot who cleans raw content scraped from a website
+    Web scraping assistant who cleans raw content scraped from a website
 
   instructions: |
-    You'll be given raw content scraped from a website in the form of a string. Remove the html tags, commentary and other irrelevant content from the raw string and return the string in an organized format
+    You'll be given raw content scraped from a website in the form of a string. Remove the html tags, commentary, dead space, emojis and any other irrelevant content that doesn't align with the substance of the website from the raw string and return the string in an organized format
 
   constraints:
     - Do not add any extra commentary
@@ -21,16 +21,17 @@ prep_prompt:
   instructions: |
     You will be given a long string of information containing content scraped from many different pages of a website. The content is disorganized, scattered, and contains duplicate or unnecessary information. The source string consists of pages separated by the header === WEB CONTENT ===.
 
-    Organize this content into the following categories:
-    {categories}
+    If the user has specific categories they want the content organized into, you will find those below.  If categories is none, then create your own categories for the data that make sense
 
+    === Categories ===
+    {categories}
+    
   constraints:
     - 'Be Detailed: Do not summarize or remove information that might be useful to a user. Retain as much specific context as possible.'
-    - 'Leadership Updates: Ensure all leadership transitions and current executive titles are reflected accurately in the organized content.'
     - 'No Commentary: Output only the reorganized content. No intro or outro text.'
 
   format:
     - Markdown format
-    - 'Header: The name of the category.'
+    - 'Header: The name of the category. Use a single # if it is a main category.  Use two ## or three ### for subcategories'
     - 'Space: One empty line.'
     - 'Content: Use either bullet points or paragraphs, whichever best suits the specific information for that category.'

@@ -7,10 +7,17 @@ from utils.logging_helper import setup_logging
 import sys
 import os
 
-logger = setup_logging()
+logger = setup_logging(name='insert_docs')
 
 
-def upload_content_to_store(persist_path: str, collection_name: str, documents_path: str | Path, **kwargs):
+def upload_content_to_store(
+        documents_path: str | Path,
+        persist_path: str="./chroma/rag", 
+        collection_name: str="default_rag", 
+        store: Optional[Any]=None, 
+        **kwargs
+        ):
+    
     """Load, chunk, and upload documents into a vector store.
 
     Args:
@@ -18,14 +25,23 @@ def upload_content_to_store(persist_path: str, collection_name: str, documents_p
         documents_path: File or directory path containing documents to ingest.
         **kwargs: Chunking keyword arguments forwarded to chunk_markdown_text.
     """
-    embedding_model = initialize_embedding_model(show_progress=False)
-    store = create_vector_store(persist_path, collection_name, embedding_model)
-    publications = load_files_as_list(documents_path)
-    docs = chunk_markdown_text(publications, **kwargs)
-    store.add_documents(docs)
+    if not store:
+        print("Initializing store connection...")
+        embedding_model = initialize_embedding_model()
+        store = create_vector_store(persist_path, collection_name, embedding_model)
 
-    print(f"\nSuccessfully added files from {documents_path} to vector store\n")
-    logger.info(f"Uploaded {len(docs)} chunks from {documents_path} to {collection_name}") 
+    try:
+        publications = load_files_as_list(documents_path)
+        docs = chunk_markdown_text(publications, **kwargs)
+        store.add_documents(docs)
+
+        print(f"\nSuccessfully added files from {documents_path} to vector store\n")
+        logger.info(f"Uploaded {len(docs)} chunks from {documents_path} to {collection_name}") 
+
+    except Exception as e:
+        print(f"Error loading documents: {e}")
+        logger.exception(f"=== Error Loading Docs ===\n\n{e}")
+
 
 if __name__ == "__main__":
 
@@ -33,8 +49,8 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Load or create a vector store and insert documents")
     parser.add_argument('--persist-path', type=str, default=None, help="Path where your vector store is.  If one does not exist then it will be created at this path")
-    parser.add_argument('--collection-name', default=None, help='Name of the collection you wish to retrieve or create')
-    parser.add_argument('--documents-path', default=None, help='Path to where the documents you wish to store are saved')
+    parser.add_argument('--collection-name', type=str, default=None, help='Name of the collection you wish to retrieve or create')
+    parser.add_argument('--documents-path', type=str, default=None, help='Path to where the documents you wish to store are saved')
 
     args = parser.parse_args()
 
@@ -76,7 +92,7 @@ if __name__ == "__main__":
         upload_content_to_store(
             persist_path=persist_path,
             collection_name=collection_name,
-            documents_path=documents_path
+            documents_path=documents_path,
         )
     except Exception as e:
         print(f"Failed to upload content: {e}")

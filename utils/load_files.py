@@ -22,7 +22,7 @@ def load_files_as_list(documents_path: Union[str, Path]) -> List[str]:
             try:
                 content = root.read_text(encoding='utf-8')
                 file_list.append(content)
-                print(f"Successfully Loaded single file: {root}")
+                print(f"Successfully loaded single file: {root}")
             except Exception as e:
                 print(f"Error loading {root}: {e}")
         else:

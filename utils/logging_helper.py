@@ -14,7 +14,7 @@ def setup_logging(name: str="rag_assistant"):
     if logger.handlers:
         return logger
     
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - [Line: %(lineno)d] - %(message)s')
+    formatter = logging.Formatter('\n-------------\n%(asctime)s - %(levelname)s - [Line: %(lineno)d] -\n%(message)s')
 
     logger.setLevel(logging.INFO)
 

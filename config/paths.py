@@ -18,9 +18,9 @@ INGESTION_PROMPTS_FPATH = os.path.join(PROMPTS_DIR, "ingestion_prompts.yaml")
 COMPONENTS_FPATH = os.path.join(PROMPTS_DIR, "components.yaml")
 
 OUTPUTS_DIR = os.path.join(ROOT_DIR, "outputs")
+DATA_DIR = os.path.join(ROOT_DIR, "data")
+RESPONSE_METADATA = os.path.join(OUTPUTS_DIR, "metadata")
 
-
-# DATA_DIR = os.path.join(ROOT_DIR, "data")
 # PUBLICATION_FPATH = os.path.join(DATA_DIR, "publication.md")
 
 # VECTOR_DB_DIR = os.path.join(OUTPUTS_DIR, "vector_db")

@@ -1,56 +1,26 @@
 from utils.load_yaml_config import load_all_prompts
 from utils.prompt_builder import build_prompt
-from config.load_env import load_env
+from config.load_env import load_env, MODEL_CONFIG
 from pathlib import Path
 import sys
 import os
 from datetime import datetime
-from config.paths import PROMPTS_DIR, OUTPUTS_DIR
-from groq import Groq
+from config.paths import PROMPTS_DIR, DATA_DIR
+from langchain.chat_models import init_chat_model # type: ignore
 from utils.logging_helper import setup_logging
 from utils.kwarg_parser import parse_value
 from typing import List, Optional
 
+# Setup environment
 load_env()
 logger = setup_logging(name='prep')
-
-# change this to accomodate different providers
-client = Groq()
-
-# Default categories for Aya Healthcare (can be overridden)
-DEFAULT_CATEGORIES = [
-    'Frequently Asked Questions (FAQ)',
-    'Basic Questions about Travel Nursing: How it works, general industry info.',
-    'Pay: Salary, rates, and compensation structure.',
-    'Reviews: Include all nurse reviews with the nurse name, specialty, and the full review.',
-    'Benefits and Perks',
-    'Job Details: General information on available job types, locations, and the application and hiring process (not specific job listings).',
-    'Compliance: How the compliance process works for clinicians.',
-    'General Information',
-    'Scholarships and Education Programs: Provide detailed information on available programs.',
-    'Awards and Recognitions: Include full details on the award, its purpose, nomination process, and criteria for receiving it.',
-    'Clinician Stories and Testimonials: Include the clinician name, profession, and their full story or testimonial.',
-    'Leadership and Team Profiles: Provide names and titles for all executives and founders mentioned in the text.',
-    'Housing and Relocation',
-    'Technology and Platforms',
-    'Advisory and Workforce Analytics Solutions',
-    'Community Impact and CSR',
-    'International and Global Operations',
-    'Employment Types and Contract Models',
-    'Research, Demographics and Market Studies',
-    'Media, Podcasts, Blogs and Press Coverage: For each piece, provide the title and a 2-3 sentence detailed summary.',
-    'Regulatory and Licensing Details',
-    'Career Development and Professional Growth',
-    'Pricing and Stipends: Specifically covering Housing, Meal, and Incidental stipends.',
-    'Emergency and 24-Hour Support',
-    'Links: Provide relevant links for further action such as searching for jobs, specific blogs, or career tips.'
-]
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+save_path = Path(DATA_DIR) / f"prepped_rag_material_{timestamp}.md"
 
 # Load prompt template from new modular structure
 try:
     prompt_options = load_all_prompts(PROMPTS_DIR)
     prep_parts = prompt_options.get("prep_prompt", {})
-    logger.info("Successfully loaded prep_prompt from prompts directory")
 except Exception as e:
     logger.error(f"Error loading prompts: {e}")
     print(f"Warning: Could not load prompts from {PROMPTS_DIR}. Using minimal default.")
@@ -58,13 +28,8 @@ except Exception as e:
         "instructions": "Prep this string for storage into a vector database by removing redundant information and categorizing sections"
     }
 
-# make sure output is in markdown format
-
 def prepare_web_content(
     file_path: Path | str,
-    categories: Optional[List[str]] = None,
-    model: str = 'openai/gpt-oss-120b',
-    reasoning_effort: str = 'med',
     **kwargs
 ):
     """Send cleaned web content to the LLM for preprocessing and save output.
@@ -78,17 +43,16 @@ def prepare_web_content(
         **kwargs: Additional keyword arguments forwarded to the LLM call.
 
     Returns:
-        Tuple of usage statistics and reasoning text when a response is saved.
+        No return.  If successful, file is saved to the OUTPUTS directory and response metadata is logged
     """
-    # Use default categories if none provided
-    if categories is None:
-        categories = DEFAULT_CATEGORIES
-        logger.info("Using default categories")
 
     # Build prompt with categories placeholder substitution
+
+    model = init_chat_model(**MODEL_CONFIG, max_retries=2)
+
     try:
-        prompt = build_prompt(prep_parts, categories=categories)
-        logger.info(f"Built prep prompt with {len(categories)} categories")
+        prompt = build_prompt(prep_parts, **kwargs)
+        logger.info(f"==== PREP PROMPT ===\n\n{prompt}")
     except Exception as e:
         logger.error(f"Error building prompt: {e}")
         print(f"Warning: Error building prompt. Using minimal default.")
@@ -116,27 +80,16 @@ def prepare_web_content(
     print("Sending web content to the model, this may take a second...\n")
 
     try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=message, # type: ignore
-            reasoning_effort=reasoning_effort, # type: ignore
-            **kwargs
-        )
 
-        updated_content = response.choices[0].message.content
-        usage_stats = dict(response.usage) # type: ignore
-        reasoning = response.choices[0].message.reasoning
+        response = model.invoke(message)
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_path = Path(OUTPUTS_DIR) / f"prepped_rag_material_{timestamp}.md"
+        updated_content = response.content
+        logger.info(f"=== Response Metadata ===\n\n{response.response_metadata}")
 
         with open(save_path, "w", encoding='utf-8') as f:
             f.write(updated_content) # type: ignore
         
-        print(f"Response successfully saved at {save_path}")
-
-        logger.info(f"Response Metadata: {usage_stats}")
-        logger.info(f"Reasoning: {reasoning}")
+        print(f"Response successfully saved at {save_path}\n")
     
     except Exception as e:
         print(f"Sorry, the request could not be completed.  This is the error: {e}.  Please take care of this and try again")
@@ -145,25 +98,21 @@ def prepare_web_content(
 
 if __name__ == "__main__":
 
+    # need to add kwargs parser and changes to model config
+
     import argparse
 
     parser = argparse.ArgumentParser(description="Takes your string content and organizes it in markdown format to prep it for ingestion into a vector store")
     parser.add_argument('--file-path', type=str, default=None, help='Path to the content you wish to have organized')
-    parser.add_argument('--model', type=str, default="openai/gpt-oss-120b", help='LLM to use')
 
     args = parser.parse_args()
 
     file_path = args.file_path
-    model = args.model
     kwargs = {}
-
-    # TODO: In future, pass categories from clean.py step to prep.py for dynamic categorization
-    # For now, using DEFAULT_CATEGORIES defined at top of file
-    categories = None  # Will use DEFAULT_CATEGORIES in prepare_web_content()
 
     # Build initial prompt to show user
     try:
-        preview_prompt = build_prompt(prep_parts, categories=DEFAULT_CATEGORIES)
+        preview_prompt = build_prompt(prep_parts)
         print(f"\n#### CURRENT PROMPT (Preview) ####\n\n{preview_prompt[:500]}...")
     except Exception as e:
         logger.error(f"Error building preview prompt: {e}")
@@ -171,14 +120,14 @@ if __name__ == "__main__":
 
     if not file_path:
         file_path = input("\nPlease enter the file path to the content you wish to prepare for vector storage: ")
+    
+    # check for model update
+    customize = input(f"\nWould you like to choose a different model to use? Current choice is {MODEL_CONFIG.get('model')}?  Type Yes or No: ")
+    if customize.lower() in ['yes', 'y', 'yeah', 'ya']:
+        model = input("\nOk, enter a valid model name: ")
+        MODEL_CONFIG['model'] = model
 
-    if model == "openai/gpt-oss-120b":
-
-        customize = input("\nWould you like to choose a different model to use? Default is openai/gpt-oss-120b?  Type Yes or No: ")
-        if customize.lower() in ['yes', 'y', 'yeah', 'ya']:
-            model = input("\nOk, enter a valid model name: ")
-
-    add_kwargs = input("\nDo you wish to customize any other arguments in the chat_completions method for the client?  Type Yes or No: ")
+    add_kwargs = input("\nDo you wish to customize any other arguments in the init_chat_model method for the client?  Type Yes or No: ")
 
     if add_kwargs.lower() in ['yes', 'y', 'yeah', 'ya']:
 
@@ -191,7 +140,5 @@ if __name__ == "__main__":
 
     prepare_web_content(
         file_path=file_path,
-        categories=categories,
-        model=model,
         **kwargs # type: ignore
         )

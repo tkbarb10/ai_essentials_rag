@@ -1,8 +1,8 @@
-from config.load_env import load_env
+from config.load_env import load_env, MODEL_CONFIG
 import sys
-from groq import Groq
+from langchain.chat_models import init_chat_model # type: ignore
 from utils.load_yaml_config import load_all_prompts
-from config.paths import PROMPTS_DIR, OUTPUTS_DIR
+from config.paths import PROMPTS_DIR, OUTPUTS_DIR, RESPONSE_METADATA
 from utils.prompt_builder import build_prompt
 from utils.kwarg_parser import parse_value
 from datetime import datetime
@@ -12,17 +12,20 @@ from pathlib import Path
 import json
 from tqdm import tqdm
 from utils.logging_helper import setup_logging
+import pandas as pd
 
+# Configure environment
 load_env()
 logger = setup_logging(name='clean')
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Load prompts from new modular structure
+# Load prompts
 try:
     prompt_options = load_all_prompts(PROMPTS_DIR)
     scrape_parts = prompt_options.get("scrape_prompt", {})
     if scrape_parts:
         scrape_prompt = build_prompt(scrape_parts)
-        logger.info("Successfully loaded scrape_prompt from prompts directory")
+        print("Successfully loaded scrape_prompt from prompts directory")
     else:
         # Fallback if scrape_prompt not found
         scrape_prompt = "Clean this string of html tags and other web artifacts"
@@ -32,17 +35,15 @@ except Exception as e:
     print(f"Warning: Could not load prompts from {PROMPTS_DIR}. Using default.")
     scrape_prompt = "Clean this string of html tags and other web artifacts"
 
-# change this to accommodate different providers
-client = Groq()
 
-def create_message_payload(web_content: List[str] | str, prompt: str):
+def create_message_payload(web_content: List[str] | str, prompt: str) -> List:
     """Build message payloads for LLM cleaning requests.
 
     Args:
         web_content: List of raw web content strings to clean.
 
     Returns:
-        List of message payloads suitable for Groq chat completions.
+        List of message payloads suitable for chat completions.
     """
     payloads = []
 
@@ -59,7 +60,7 @@ def create_message_payload(web_content: List[str] | str, prompt: str):
 
     return payloads
 
-def cleaned_content(web_content: List[str] | str, prompt: str, model: str='openai/gpt-oss-20b', reasoning_effort: str='low', temperature: float=0.5, **kwargs):
+def cleaned_content(web_content: List[str] | str, prompt: str=scrape_prompt, **kwargs):
     """Clean web content strings using a chat model and return joined output.
 
     Args:
@@ -71,53 +72,55 @@ def cleaned_content(web_content: List[str] | str, prompt: str, model: str='opena
     Returns:
         Combined cleaned content as a single string.
     """
-    cleaned_content = []
-    skipped_messages = {}
-
-    rate_limit = int(ping(model))
-
+    model = init_chat_model(**MODEL_CONFIG, max_retries=2, **kwargs)
+    rate_limit = int(ping())
+    logger.info(f"Current Rate Limit: {rate_limit}")
     message_payloads = create_message_payload(web_content=web_content, prompt=prompt)
+    response_metadata = []
+    tokens_used = 0
 
+    cleaned_content = []
     for i, message in enumerate(tqdm(message_payloads, desc="Processing web content")):
 
         char_count = sum(len(m.get('content', '')) for m in message)
         estimated_tokens = char_count / 4
 
-        if estimated_tokens > rate_limit:
-            print(f"Web content at index {i} is estimated to be {estimated_tokens} tokens, greater than your rate limit of {rate_limit} tokens per minute.  Skipping this message and processing the rest")
-            skipped_messages[i] = message
+        if estimated_tokens > (rate_limit - tokens_used):
+            print(f"Web content at index {i} is estimated to be {estimated_tokens} tokens, greater than your rate limit of {rate_limit} tokens.  Skipping this message and processing the rest")
+            logger.info(f"Skipping web content at index {i}.  Token count estimated to be {estimated_tokens} tokens, greater than rate limit")
             continue
+        
+        try:
+            response = model.invoke(message)
+            
+            # Track usage metadata
+            tokens_used += response.usage_metadata.get('total_tokens', 0)
+            response_metadata.append(response.response_metadata['token_usage'])
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=message,
-            reasoning_effort=reasoning_effort, # type: ignore
-            temperature=temperature,
-            **kwargs
-        )
+            # Append content of response to list
+            cleaned_content.append(response.content)
 
-        cleaned_content.append(response.choices[0].message.content)
-    
+        except Exception as e:
+            print(f"Error in response for message at index {i}")
+            logger.exception(f"Error at index {i}: {e}")
+
+    # Join final list together with a header to separate each individual result
     cleaned_string = "\n\n".join(f"=== WEB CONTENT ===\n\n{item}" for item in cleaned_content)
+    pd.json_normalize(response_metadata).to_csv(f"{RESPONSE_METADATA}/llm_clean_{timestamp}.csv", index=False)
     
-    return cleaned_string, skipped_messages
-
-# either need to feed content from previous script or check for json
+    return cleaned_string
 
 if __name__ == "__main__":
 
     import argparse
     
-    parser = argparse.ArgumentParser(description="Takes the raw content from scrapped websites and removes html tags, redundant and irrelavant content")
+    parser = argparse.ArgumentParser(description="Takes the raw content from scrapped websites and removes html tags, redundant and irrelevant content")
     parser.add_argument('--file-path', type=str, default=None, help='File name in the outputs directory you want to clean')
-    parser.add_argument('--model', type=str, default="openai/gpt-oss-20b", help='LLM to use')
 
     args = parser.parse_args()
 
     file_path = args.file_path
-    model = args.model
     kwargs = {}
-
 
     print(f"\n#### CURRENT PROMPT ####\n\n{scrape_prompt}")
 
@@ -127,7 +130,7 @@ if __name__ == "__main__":
         scrape_prompt = scrape_prompt + "\n\nAdditional Instructions\n\n" + prompt_adds
     
     if not file_path:
-        file_path = input("\nEnter file name of raw web content to clean: ")
+        file_path = input("\nEnter file path of raw web content to clean: ")
 
     content_path = Path(OUTPUTS_DIR) / file_path
 
@@ -144,13 +147,13 @@ if __name__ == "__main__":
     except json.JSONDecodeError:
         raw_content = raw_text
 
-    if model == "openai/gpt-oss-20b":
-
-        customize = input("Would you like to choose a different model to use? Default is openai/gpt-oss-20b?  Type Yes or No: ")
-        if customize.lower() in ['yes', 'y', 'yeah', 'ya']:
-            model = input("\nOk, enter a valid model name: ")
+    # Check for model update
+    customize = input(f"\nWould you like to choose a different model to use? Current choice is {MODEL_CONFIG.get('model')}?  Type Yes or No: ")
+    if customize.lower() in ['yes', 'y', 'yeah', 'ya']:
+        model = input("\nOk, enter a valid model name: ")
+        MODEL_CONFIG['model'] = model
     
-    add_kwargs = input("\nDo you wish to customize any other arguments in the chat_completions method for the client?  Type Yes or No: \n")
+    add_kwargs = input("\nDo you wish to customize any other arguments in the init_chat_model method for the client?  Type Yes or No: \n")
 
     if add_kwargs.lower() in ['yes', 'y', 'yeah', 'ya']:
 
@@ -161,30 +164,19 @@ if __name__ == "__main__":
             if dict_pair and len(dict_pair) == 2:
                 kwargs[dict_pair[0]] = dict_pair[1]
 
-    cleaned_string, skipped = cleaned_content(
+    cleaned_string = cleaned_content(
         web_content=raw_content, 
         prompt=scrape_prompt,
-        model=model, 
-        reasoning_effort='low', 
-        temperature=0.5, 
         **kwargs
         )
     
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = Path(OUTPUTS_DIR) / f"cleaned_content_{timestamp}.txt"
-    skipped_path = Path(OUTPUTS_DIR) / f"skipped_{timestamp}.json"
     
-    if skipped:
-        with open(skipped_path, "w", encoding='utf-8') as f:
-            json.dump(skipped, f, ensure_ascii=False)
-        print(f"Saved skipped messages at {skipped_path}")
-
-    
-    print(f"\n##### PREVIEW OF CLEANED CONTENT #####\n\n{cleaned_string[:250]}")
+    print(f"\n##### PREVIEW OF CLEANED CONTENT #####\n\n{cleaned_string[:250]}\n")
 
     try:
         save_path.write_text(cleaned_string, encoding='utf-8')
-        print(f"Web content successfully saved at {save_path}")
+        print(f"Web content successfully saved at {save_path}\n")
 
     except Exception as e:
         print(f"There was an error saving your file.\nError: {e}")

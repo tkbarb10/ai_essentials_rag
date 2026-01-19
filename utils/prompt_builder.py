@@ -1,15 +1,13 @@
 from typing import Dict, Any, List, Union, Optional
 from utils.logging_helper import setup_logging
+from utils.load_yaml_config import load_yaml_config
+from config.paths import COMPONENTS_FPATH
 
 # Initialize logger for this module
 logger = setup_logging(name='prompt_builder')
 
 # Default component values - used when components are missing or None
-DEFAULT_COMPONENTS = {
-    'tone': 'conversational',
-    'reasoning': 'Self-Ask',
-    'tools': True
-}
+comp_options = load_yaml_config(COMPONENTS_FPATH)
 
 
 def format_prompt_section(lead_in: str, value: Union[str, List[str]]) -> str:
@@ -87,7 +85,7 @@ def build_prompt(
     if topic:
         role = role.replace("{topic}", topic)
 
-    prompt_parts.append(f"You are a {role}")
+    prompt_parts.append(f"You are a {role.strip()}")
 
     # Instructions are required
     instructions = config.get('instructions')
@@ -104,7 +102,7 @@ def build_prompt(
         categories_formatted = "\n".join(f"- {cat}" for cat in categories)
         instructions = instructions.replace("{categories}", categories_formatted)
 
-    prompt_parts.append(instructions)
+    prompt_parts.append(instructions.strip())
 
     # Handle categories from config (legacy support for hardcoded categories)
     if categories_from_config := config.get("categories"):
@@ -125,53 +123,47 @@ def build_prompt(
             )
         )
 
-    # Tools - try components first, then config, then defaults
-    tools_content = None
+    # Tools
     if components:
         try:
             # Tools component is a list directly, not nested under 'description'
-            if 'tools' in components:
-                tools_content = components['tools']
-                logger.info("Loaded tools from components")
+            if components.get('tools'):
+                tools_content = comp_options['tools']
+                prompt_parts.append(
+                    format_prompt_section(
+                        "Tools:", tools_content
+                    )
+                )
+                logger.info(f"Using these tools from components: {tools_content}")
         except Exception as e:
             print(f"Warning: Error loading tools from components: {e}")
             logger.warning(f"Error loading tools from components: {e}, falling back to config")
 
-    # Fall back to config if not found in components
-    if tools_content is None:
-        tools_content = config.get("tools")
-
-    if tools_content:
-        prompt_parts.append(
-            format_prompt_section(
-                "Tools:", tools_content
-            )
-        )
-
-    # Tone - try components first, then config
+    # Tone
     tone_content = None
     if components:
         try:
-            # Look for tone in components
             if 'tones' in components:
-                tone_key = DEFAULT_COMPONENTS['tone']  # 'conversational'
-                tone_content = components['tones'].get(tone_key)
-                if tone_content:
-                    logger.info(f"Loaded tone '{tone_key}' from components")
+                tone_key = components.get('tones')
+                tone_content = comp_options.get('tones').get(tone_key) # type: ignore
+                logger.info(f"Loaded tone '{tone_key}' from components")
         except Exception as e:
             print(f"Warning: Error loading tone from components: {e}")
             logger.warning(f"Error loading tone from components: {e}, falling back to config")
+    
+    if not tone_content:
+        tone_content = [
+            'Personal and human',
+            'Avoid buzzwords',
+            "Don't use em dashes or semicolons",
+            'Favor brevity over long, compound sentences'
+            ]
 
-    # Fall back to config if not found in components
-    if tone_content is None:
-        tone_content = config.get("tone")
-
-    if tone_content:
-        prompt_parts.append(
-            format_prompt_section(
-                "Communication Style:", tone_content
-            )
+    prompt_parts.append(
+        format_prompt_section(
+            "Communication Style:", tone_content
         )
+    )
 
     # Format
     if format_section := config.get("format"):
@@ -185,11 +177,11 @@ def build_prompt(
     if goal := config.get("goal"):
         if topic:
             goal = goal.replace("{topic}", topic)
-        prompt_parts.append(f"The goal of this interaction is: {goal}")
+        prompt_parts.append(f"The goal of this interaction is: {goal.strip()}")
 
     # Reasoning strategy - try components first, then config, with default fallback
     if strategy is None:
-        strategy = DEFAULT_COMPONENTS['reasoning']  # 'Self-Ask'
+        strategy = 'Self-Ask'
 
     reasoning_content = None
     if strategy:
@@ -197,16 +189,16 @@ def build_prompt(
             try:
                 # Look for reasoning strategies in components
                 if 'reasoning_strategies' in components:
-                    reasoning_content = components['reasoning_strategies'].get(strategy)
-                    if reasoning_content:
-                        logger.info(f"Loaded reasoning strategy '{strategy}' from components")
+                    reasoning_key = components['reasoning_strategies']
+                    reasoning_content = comp_options.get("reasoning_strategies").get(reasoning_key) # type: ignore
+                    logger.info(f"Loaded reasoning strategy '{strategy}' from components")
             except Exception as e:
                 print(f"Warning: Error loading reasoning strategy from components: {e}")
                 logger.warning(f"Error loading reasoning strategy from components: {e}, falling back to config")
 
         # Fall back to config if not found in components
         if reasoning_content is None:
-            if reasoning_strategies := config.get("reasoning_strategies"):
+            if reasoning_strategies := comp_options.get("reasoning_strategies"):
                 reasoning_content = reasoning_strategies.get(strategy)
 
         if reasoning_content:
@@ -217,10 +209,12 @@ def build_prompt(
         context_string = "\n".join(f"-{item}" for item in context)
         prompt_parts.append(
             "Here is additional context to help with your answers\n\n"
-            "=== ADDITONAL CONTEXT ===\n"
+            "=== ADDITIONAL CONTEXT ===\n"
             f"{context_string}\n"
             "=== END ADDITIONAL CONTEXT ===\n\n"
             "=== PREVIOUS CONVERSATION HISTORY ===\n"
         )
+
+        logger.info(f"=== How Prompt with context added looks ===\n\n{"\n\n".join(prompt_parts)}")
 
     return "\n\n".join(prompt_parts)

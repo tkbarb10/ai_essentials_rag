@@ -1,7 +1,14 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
-from typing import List
+from typing import List, Optional
 
-def chunk_markdown_text(paper_content: str | List[str], chunk_size: int=750, chunk_overlap: int=150, **kwargs):
+def chunk_markdown_text(
+        paper_content: str | List[str], 
+        chunk_size: int=750, 
+        chunk_overlap: int=150, 
+        md_kwargs: Optional[dict]=None, 
+        rc_kwargs: Optional[dict]=None
+        ):
+    
     """Split markdown content into smaller chunks suitable for embedding/search.
 
     The function first splits on Markdown headers using `MarkdownHeaderTextSplitter`
@@ -17,29 +24,27 @@ def chunk_markdown_text(paper_content: str | List[str], chunk_size: int=750, chu
     Returns:
         A flat list of chunked documents (as produced by the text splitter).
     """
+    md_kwargs = md_kwargs or {"headers_to_split_on": [("#", "Header 1"), ("##", "Header 2"), ("###", "Header 3")]}
+    rc_kwargs = rc_kwargs or {}
 
     markdown_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=[("#", "Main Topic"), ("##", "Subtopic")]
+        **md_kwargs
     )
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size = chunk_size,
         chunk_overlap = chunk_overlap,
-        **kwargs
+        **rc_kwargs
     )
 
     docs = []
 
-    if isinstance(paper_content, list):
-        for content in paper_content:
+    content_list = [paper_content] if isinstance(paper_content, str) else paper_content
 
-            markdown_docs = markdown_splitter.split_text(content)
-            text_docs = text_splitter.split_documents(markdown_docs)
-            docs.append(text_docs)
-    
-    else:
-        markdown_docs = markdown_splitter.split_text(paper_content)
+    for content in content_list:
+
+        markdown_docs = markdown_splitter.split_text(content)
         text_docs = text_splitter.split_documents(markdown_docs)
-        docs.append(text_docs)
+        docs.extend(text_docs)
         
-    return sum(docs, [])
+    return docs

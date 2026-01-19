@@ -1,19 +1,21 @@
 from tavily import TavilyClient
 from config.load_env import load_env
 from utils.kwarg_parser import parse_value
-from typing import List, Dict
+from typing import List, Dict, Optional
 import os
 import json
-import math
 from config.paths import OUTPUTS_DIR
 from urllib.parse import urlparse
 from datetime import datetime
+from utils.logging_helper import setup_logging
+
+logger = setup_logging(name = "web_scraping")
 
 load_env()
 
 tavily_client = TavilyClient()
 
-def website_map(root_url: str, instructions: str, max_depth: int=5, include_usage: bool=True, **kwargs):
+def website_map(root_url: str, instructions: str='Avoid returning utility links', max_depth: int=5, include_usage: bool=True, **kwargs):
     """Fetch a crawl map of URLs starting at a root location.
 
     Args:
@@ -24,8 +26,9 @@ def website_map(root_url: str, instructions: str, max_depth: int=5, include_usag
         **kwargs: Additional keyword arguments passed to the map request.
 
     Returns:
-        Mapping results returned by the Tavily client.
+        Dictionary of mapping results returned by the Tavily client.
     """
+    logger.info(f"root_url: {root_url}\ninstructions: {instructions}\nmax_depth: {max_depth}\nOther key word args: {kwargs}")
 
     try:
         print("Beginning map quest...")
@@ -39,37 +42,39 @@ def website_map(root_url: str, instructions: str, max_depth: int=5, include_usag
             )
 
         print("Map quest completed!")
+        logger.info(f"Response Time: {map_results.get("response_time")}\nAPI Credits: {map_results.get('usage')}")
 
-        return map_results
+        return map_results['results']
     
     except Exception as e:
         print("Map quest unsuccessful")
-        print(f"Thwarted by: {e}")
+        logger.error(f"Thwarted by: {e}", exc_info=True)
 
 # returns a dict object that includes the base_url, results (list of links), usage, response time in seconds and request_id
 
-def extract_links(url_list: List[str]) -> dict:
-    """Group URLs into batches of 20 for downstream extraction.
+# def extract_links(url_list: List[str]) -> dict:
+#     """Group URLs into batches of 20 for downstream extraction.  The tavily.extract() method only accepts 20 links at a time
 
-    Args:
-        url_list: Flat list of URLs to group.
+#     Args:
+#         url_list: Flat list of URLs to group.
 
-    Returns:
-        Dictionary mapping group names to URL lists.
-    """
-    url_dict = {}
-    n_group = math.ceil(len(url_list) / 20)
+#     Returns:
+#         Dictionary mapping group names in the format "group_n" to URL lists.
+#     """
+#     url_dict = {}
+#     n_group = math.ceil(len(url_list) / 20)
 
-    print(f"There are {len(url_list)} urls, dividing into {n_group} groups for content extraction")
+#     print(f"\nThere are {len(url_list)} urls, dividing into {n_group} groups for content extraction")
+#     logger.info(f"There are {len(url_list)} urls, batching into {n_group}")
 
-    for i in range(n_group):
-        n = i * 20
-        url_dict[f"group_{i}"] = url_list[n:n + 20]
+#     for i in range(n_group):
+#         n = i * 20
+#         url_dict[f"group_{i}"] = url_list[n:n + 20]
     
-    return url_dict
+#     return url_dict
 
 
-def extract_content(url_dict: Dict[str, str]):
+def extract_content(url_list: List[str]) -> List[Dict]:
     """Extract raw markdown content for each URL group.
 
     Args:
@@ -78,35 +83,35 @@ def extract_content(url_dict: Dict[str, str]):
     Returns:
         Dictionary of extraction results keyed by group.
     """
-    result_set = {}
+    result_set = []
+    response_time = 0
+    usage = 0
 
-    for key, url_list in url_dict.items():
-        
-        # Initialize a list to hold results for this specific key
-        key_results = []
+    for i, url in enumerate(url_list):
+        try:
+            result = tavily_client.extract(
+                urls=url, 
+                extract_depth='basic',
+                timeout=60,
+                include_usage=True
+            )
 
-        for url in url_list:
-            try:
-                # Note: We pass [url] as a list containing a single string
-                result = tavily_client.extract(
-                    urls=[url], 
-                    extract_depth='advanced',
-                    timeout=60,
-                    include_usage=True
-                )
+            result_set.extend(result['results'])
+            response_time += result.get("response_time", 0)
+            usage += result.get('usage', 0).get('credits', 0)
 
-                key_results.append(result)
+            if result.get('failed_results'):
+                logger.info(f"Failed Link: {result.get('failed_results')}")
 
-            except Exception as e:
-                print(f"Skipping individual URL {url} in {key} due to error: {e}")
-                continue # Move to the next URL in the list
+        except Exception as e:
+            print(f"\nError extracting from link {url} at index {i}")
+            logger.error(f"Error: {e}", exc_info=True)
 
-        result_set[key] = key_results
-
+    logger.info(f"Response time to extract {len(result_set)} links: {response_time}\nCredit Usage: {usage}")
     return result_set
 
 
-def raw_web_content(root_url: str, instructions: str, max_depth: int=5, include_usage: bool=True, **kwargs):
+def raw_web_content(root_url: str, instructions: str="Avoid returning utility links", max_depth: int=5, include_usage: bool=True, **kwargs):
     """Map a site, extract markdown content, and return raw strings.
 
     Args:
@@ -119,7 +124,7 @@ def raw_web_content(root_url: str, instructions: str, max_depth: int=5, include_
     Returns:
         List of raw markdown content strings from extracted pages.
     """
-    map_results = website_map(
+    url_list = website_map(
         root_url=root_url,
         instructions=instructions,
         max_depth=max_depth,
@@ -127,29 +132,30 @@ def raw_web_content(root_url: str, instructions: str, max_depth: int=5, include_
         **kwargs
     )
 
-    url_list = map_results['results'] # type: ignore
+    # url_dict = extract_links(
+    #     url_list=url_list
+    # )
 
-    url_dict = extract_links(
-        url_list=url_list
-    )
-
+    print("\nExtracting content, stand by...")
     result_set = extract_content(
-        url_dict=url_dict
+        url_list=url_list # type: ignore
     )
+
+    print("\nParsing results...")
 
     content_strings = []
 
-    for key, value in result_set.items():
-        for item in value:
-            if item.get('results'):
-                content_strings.append(item['results'][0]['raw_content'])
+    for item in result_set:
+        content_strings.append(item.get('raw_content'))
+
+    print("\nAll done!")
     
     return content_strings
 
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Takes a root url and maps out links to a specificed depth then scrapes the web content from each link")
+    parser = argparse.ArgumentParser(description="Takes a root url and maps out links to a specified depth then scrapes the web content from each link")
     parser.add_argument('--url', type=str, default=None, help='Root URL to scrape')
     parser.add_argument('--instructions', type=str, default=None, help='Instructions for the mapping process')
     parser.add_argument('--max-depth', type=int, default=None, help='Maximum crawl depth')
@@ -164,7 +170,7 @@ if __name__ == "__main__":
     kwargs = {}
 
     if not url:
-        url = input("Please enter a root url that you wish to map from: ")
+        url = input("\nPlease enter a root url that you wish to map from: ")
 
     if not instructions:
         instructions = input("\nPlease enter instructions that you wish to pass to the crawler if you'd like to filter out certain links or focus on specific types of content: ")
@@ -213,7 +219,7 @@ if __name__ == "__main__":
     try:
         with open(path, "w", encoding='utf-8') as f:
             json.dump(content_strings, f, ensure_ascii=False)
-        print(f"Web content successfully saved at {path}")
+        print(f"\nWeb content successfully saved at {path}")
 
     except Exception as e:
         print(f"There was an error saving your file.\nError: {e}")

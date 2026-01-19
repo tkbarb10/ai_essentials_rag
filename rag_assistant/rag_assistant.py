@@ -10,6 +10,9 @@ from langchain.chat_models import init_chat_model
 from utils.load_files import load_files_as_list
 from utils.chunk_content import chunk_markdown_text
 from utils.logging_helper import setup_logging
+import time
+
+# Log the scores and time for query
 
 # Load environment variables
 env_config = load_env()
@@ -28,12 +31,13 @@ class RAGAssistant:
 
     def __init__(
         self,
-        persist_path: str,
-        collection_name: str,
         topic: str,
+        persist_path: str = "./chroma/rag_material",
+        collection_name: str = "default_collection",
         prompt_template: str = 'educational_assistant',
         components: Optional[Dict[str, Any]] = None,
-        db_kwargs: Optional[Dict[str, Any]] = None
+        store: Optional[Any] = None,
+        **kwargs
     ):
         """Initialize the RAG assistant with modular prompt configuration.
 
@@ -45,11 +49,11 @@ class RAGAssistant:
             prompt_template: Name of the prompt template to use from prompts YAML.
                 Defaults to 'educational_assistant'.
             components: Optional dict of reusable prompt components:
-                - 'tones': Dict of named tone configurations (default: 'conversational')
-                - 'reasoning_strategies': Dict of reasoning strategies (default: 'Self-Ask')
-                - 'tools': List of tool descriptions (default: web search enabled)
+                - 'tones': Dict of named tone configurations. Available options are 'conversational', 'professional', 'technical' (default: 'conversational')
+                - 'reasoning_strategies': Dict of reasoning strategies.  Options are CoT, ReAct, Self-Ask (default: 'Self-Ask')
+                - 'tools': bool.  If True, loads all available tools. (default: True)
                 If None, defaults are applied automatically by build_prompt().
-            db_kwargs: Optional dict of kwargs passed to `create_vector_store`.
+            kwargs: Optional dict of kwargs passed to `create_vector_store`.
 
         Raises:
             ValueError: If the underlying chat model fails to initialize.
@@ -94,18 +98,18 @@ class RAGAssistant:
             ) from e
 
         # Initialize Embedding Model
-        self.embed_model = initialize_embedding_model(model_name=env_config['EMBEDDING_MODEL'], show_progress=False)
+        self.embed_model = initialize_embedding_model(model_name=env_config['EMBEDDING_MODEL'])
 
         # Initialize vector database
-        self.persist_path = persist_path
-        self.collection_name = collection_name
-        self.db_kwargs = db_kwargs or {}
-        self.vector_db = create_vector_store(
-            persist_path=self.persist_path,
-            collection_name=self.collection_name,
-            embedding_model=self.embed_model,
-            db_kwargs=self.db_kwargs
-        )
+        if store:
+            self.vector_db = store
+        else:
+            self.vector_db = create_vector_store(
+                persist_path=persist_path,
+                collection_name=collection_name,
+                embedding_model=self.embed_model,
+                **kwargs
+            )
 
         # Create RAG prompt template
         self.prompt_template = self._build_prompt_template(
@@ -193,17 +197,18 @@ class RAGAssistant:
         the prompt context.
         """
         formatted = []
-        for i, doc in enumerate(docs):
-            metadata = doc.metadata
+        for i, item in enumerate(docs):
+            doc = item[0]
+            sim_score = round(item[1], 4)
+            full_metadata = [f"{k}: {v}" for k, v in doc.metadata.items()]
             content = doc.page_content
-            
+
             formatted.append(
                 f"Document {i+1}:\n"
-                f"Topic: {metadata.get('Main Topic', 'None')}\n"
-                f"SubTopic: {metadata.get('Subtopic', 'None')}\n"
-                f"Content: {content}\n"
+                f"Relevance Score on a 0 to 1 scale: {sim_score}\n"
+                f"{"\n".join(full_metadata)}\n"
+                f"Content: \n\n{content}"
             )
-        
         return "\n\n".join(formatted)
 
     def add_documents(self, documents: List) -> None:
@@ -228,8 +233,13 @@ class RAGAssistant:
         Returns:
             The LLM answer as a string.
         """
-        docs = self.vector_db.search(query=query, search_type='similarity', k=n_results)
+        start = time.perf_counter()
+        docs = self.vector_db.similarity_search_with_relevance_scores(query=query, k=n_results)
+        finish = time.perf_counter()
+
         context = self._format_docs_with_metadata(docs)
+
+        self.logger.info(f"Retrieved context for query: {query}\n\n{context}\n\nTime to retrieve: {round((finish - start), 4)}")
 
         message_payload = {
             "context": context,
@@ -240,7 +250,7 @@ class RAGAssistant:
         llm_answer = self.chain.invoke(message_payload)
         return llm_answer
 
-def main(documents_path: Optional[str], persist_path: str, collection_name: str, topic: str):
+def main(documents_path: Optional[str], persist_path: str, collection_name: str, topic: str, **kwargs):
     """Demonstration CLI for the RAG assistant.
 
     This function initializes `RAGAssistant` and (optionally) loads and chunks
@@ -253,8 +263,11 @@ def main(documents_path: Optional[str], persist_path: str, collection_name: str,
         assistant = RAGAssistant(
             persist_path=persist_path,
             collection_name=collection_name,
-            topic=topic
+            topic=topic,
+            **kwargs
         )
+
+        print(assistant.prompt_template.messages[0].prompt.template) # type: ignore
 
         if documents_path:
             # Load sample documents
@@ -288,12 +301,14 @@ def main(documents_path: Optional[str], persist_path: str, collection_name: str,
 if __name__ == "__main__":
 
     import argparse
+    from utils.terminal_dict_parsing import pydict_type
     
     parser = argparse.ArgumentParser(description="RAG Assistant to query your vector store")
     parser.add_argument('--documents-path', type=str, default=None, help='Where your docs are stored if you wish to upload any')
-    parser.add_argument('--persist-path', type=str, default="./store/aya_healthcare", help='Path to save vector store embeddings')
-    parser.add_argument('--collection-name', type=str, default="aya_healthcare_rag", help='Name of the Chroma collection to create or load')
+    parser.add_argument('--persist-path', type=str, default="./chroma/rag", help='Path to save vector store embeddings')
+    parser.add_argument('--collection-name', type=str, default="blueprint_text_analytics", help='Name of the Chroma collection to create or load')
     parser.add_argument('--topic', type=str, default="Blueprint Analytics in Python textbook", help='Topic this RAG assistant specializes in')
+    parser.add_argument('--kwargs', type=pydict_type, default=None, help='Additional kwargs to pass to the assistant.  If using powershell, wrap full arg in """arg""" and internal keys/values in single quotes')
 
     args = parser.parse_args()
 
@@ -301,5 +316,12 @@ if __name__ == "__main__":
     persist_path = args.persist_path
     collection_name = args.collection_name
     topic = args.topic
+    kwargs = args.kwargs
 
-    main(documents_path=documents_path, persist_path=persist_path, collection_name=collection_name, topic=topic)
+    main(
+        documents_path=documents_path, 
+        persist_path=persist_path, 
+        collection_name=collection_name, 
+        topic=topic,
+        **kwargs
+        )
