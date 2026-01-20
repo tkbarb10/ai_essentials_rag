@@ -341,10 +341,10 @@ python -m ingestion.scrape
 
 **In Python:**
 ```python
-from ingestion.scrape import scrape_website
+from ingestion.scrape import raw_web_content
 
 # Scrape content from a website
-urls = scrape_website(
+urls = raw_web_content(
     root_url="https://example.com",
     max_depth=3,
     instructions="Focus on documentation pages"
@@ -360,12 +360,12 @@ python -m ingestion.clean
 
 **In Python:**
 ```python
-from ingestion.clean import clean_content
+from ingestion.clean import cleaned_content
 
 # Clean raw content with LLM
-cleaned = clean_content(
-    raw_content_list=urls,
-    model="groq/llama-3-70b"
+cleaned = cleaned_content(
+    raw_content_list=urls
+    prompt=scrape_prompt
 )
 ```
 
@@ -378,10 +378,10 @@ python -m ingestion.prep
 
 **In Python:**
 ```python
-from ingestion.prep import prepare_content
+from ingestion.prep import prepare_web_content
 
 # Organize and format content
-prepared = prepare_content(
+prepared = prepare_web_content(
     cleaned_content=cleaned,
     categories=["Installation", "Usage", "API Reference"]
 )
@@ -391,12 +391,13 @@ prepared = prepare_content(
 
 **In Python:**
 ```python
-from vector_store.initialize import initialize_vector_store
+from vector_store.initialize import create_vector_store
 
 # Create a new vector store
-vector_store = initialize_vector_store(
-    store_name="my_knowledge_base",
-    store_path="./data/vector_stores"
+vector_store = create_vector_store(
+    persist_path="./data/vector_stores"
+    collection_name="my_knowledge_base",
+    embedding_model=embedding_model
 )
 ```
 
@@ -940,9 +941,11 @@ This project is licensed under the Apcahe 2.0 License - see the [LICENSE](LICENS
 ### Model Usage Rights
 
 #### Embedding Model
-- **Model**: [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
-- **Provider**: Sentence Transformers (HuggingFace)
-- **License**: Apache 2.0
+- **Model**: [google/embeddinggemma-300m](https://huggingface.co/google/embeddinggemma-300m)
+- **Title**: EmbeddingGemma: Powerful and Lightweight Text Representations
+- **Authors**: Schechter Vera, Henrique* and Dua, Sahil* and Zhang, Biao and Salz, Daniel and Mullins, Ryan and Raghuram Panyam, Sindhu and Smoot, Sara and Naim, Iftekhar and Zou, Joe and Chen, Feiyang and Cer, Daniel and Lisak, Alice and Choi, Min and Gonzalez, Lucas and Sanseviero, Omar and Cameron, Glenn and Ballantyne, Ian and Black, Kat and Chen, Kaifeng and Wang, Weiyi and Li, Zhe and Martins, Gus and Lee, Jinhyuk and Sherwood, Mark and Ji, Juyeong and Wu, Renjie and Zheng, Jingxiao and Singh, Jyotinder and Sharma, Abheesht and Sreepat, Divya and Jain, Aashi and Elarabawy, Adham and Co, AJ and Doumanoglou, Andreas and Samari, Babak and Hora, Ben and Potetz, Brian and Kim, Dahun and Alfonseca, Enrique and Moiseev, Fedor and Han, Feng and Palma Gomez, Frank and Hernández Ábrego, Gustavo and Zhang, Hesen and Hui, Hui and Han, Jay and Gill, Karan and Chen, Ke and Chen, Koert and Shanbhogue, Madhuri and Boratko, Michael and Suganthan, Paul and Duddu, Sai Meher Karthik and Mariserla, Sandeep and Ariafar, Setareh and Zhang, Shanfeng and Zhang, Shijie and Baumgartner, Simon and Goenka, Sonam and Qiu, Steve and Dabral, Tanmaya and Walker, Trevor and Rao, Vikram and Khawaja, Waleed and Zhou, Wenlei and Ren, Xiaoqi and Xia, Ye and Chen, Yichang and Chen, Yi-Ting and Dong, Zhe and Ding, Zhongli and Visin, Francesco and Liu, Gaël and Zhang, Jiageng and Kenealy, Kathleen and Casbon, Michelle and Kumar, Ravin and Mesnard, Thomas and Gleicher, Zach and Brick, Cormac and Lacombe, Olivier and Roberts, Adam and Sung, Yunhsuan and Hoffmann, Raphael and Warkentin, Tris and Joulin, Armand and Duerig, Tom and Seyedhosseini, Mojtaba
+- **Publisher**: Google Deepmind
+- **Original Paper**: https://arxiv.org/abs/2509.20354
 - **Usage Rights**: Permits commercial use, modification, distribution, and private use. Provided "as-is" with no warranties.
 
 #### LLM Inference

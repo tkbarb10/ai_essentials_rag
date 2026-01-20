@@ -88,7 +88,7 @@ def cleaned_content(web_content: List[str] | str, prompt: str=scrape_prompt, **k
     Returns:
         Concatenated cleaned content with section headers separating each piece.
     """
-    model = init_chat_model(**MODEL_CONFIG, max_retries=2, **kwargs)
+    model = init_chat_model(**MODEL_CONFIG, **kwargs)
     rate_limit = int(ping())
     logger.info(f"Current Rate Limit: {rate_limit}")
     message_payloads = create_message_payload(web_content=web_content, prompt=prompt)

@@ -59,7 +59,7 @@ def prepare_web_content(
 
     # Build prompt with categories placeholder substitution
 
-    model = init_chat_model(**MODEL_CONFIG, max_retries=2)
+    model = init_chat_model(**MODEL_CONFIG)
 
     try:
         prompt = build_prompt(prep_parts, **kwargs)
