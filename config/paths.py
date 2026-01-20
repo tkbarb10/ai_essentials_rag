@@ -8,9 +8,6 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # APP_CONFIG_FPATH = os.path.join(CODE_DIR, "config", "config.yaml")
 
-# Legacy path - kept for backward compatibility
-PROMPT_CONFIG_FPATH = os.path.join(ROOT_DIR, "config", "prompts.yaml")
-
 # New modular prompts directory structure
 PROMPTS_DIR = os.path.join(ROOT_DIR, "prompts")
 RAG_PROMPTS_FPATH = os.path.join(PROMPTS_DIR, "rag_prompts.yaml")
@@ -26,3 +23,9 @@ RESPONSE_METADATA = os.path.join(OUTPUTS_DIR, "metadata")
 # VECTOR_DB_DIR = os.path.join(OUTPUTS_DIR, "vector_db")
 
 # CHAT_HISTORY_DB_FPATH = os.path.join(OUTPUTS_DIR, "chat_history.db")
+
+direcs_to_create = [PROMPTS_DIR, OUTPUTS_DIR, DATA_DIR, RESPONSE_METADATA]
+
+for dir in direcs_to_create:
+    if not os.path.exists(dir):
+        os.makedirs(dir, exist_ok=True)

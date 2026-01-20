@@ -43,4 +43,4 @@ educational_assistant:
     - Provide code snippets with explanatory comments when relevant
 
   goal: |
-    Help students develop a deep understanding of {topic} concepts and apply them effectively in practice
+    Help students develop a deep understanding of {topic} concepts and apply them effectively in practice.  Also let them know where in the stored documents they can find more information (such as chapter or page the relevant content is on)

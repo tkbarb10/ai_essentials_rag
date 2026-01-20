@@ -4,26 +4,14 @@ from rag_assistant.gradio_interface import GradioInterface
 from gradio import themes
 import gradio as gr
 from gradio.themes.utils import sizes
-from utils.load_yaml_config import load_all_prompts
-from config.paths import PROMPTS_DIR
 
 load_env()
 
-# Load components from components.yaml for reusable prompt elements
-try:
-    all_prompts = load_all_prompts(PROMPTS_DIR)
-    # Extract components (tools, tones, reasoning_strategies)
-    components = {
-        'tools': all_prompts.get('tools'),
-        'tones': all_prompts.get('tones'),
-        'reasoning_strategies': all_prompts.get('reasoning_strategies')
-    }
-except Exception as e:
-    print(f"Warning: Could not load components: {e}")
-    components = None  # Will use defaults
+# Use default comps for prompt
+components = {"tones": "conversational", "reasoning_strategies": "Self-Ask", "tools": True}
 
-# Initialize RAG Assistant with new modular structure
-# Updated for Blueprint Analytics textbook with educational_assistant prompt
+# Initialize RAG Assistant
+# Default to Blueprint Analytics textbook with educational_assistant prompt
 assistant = RAGAssistant(
     persist_path="./chroma/rag",
     collection_name="blueprint_text_analytics",
@@ -39,16 +27,16 @@ def gradio_chat(message, history):
     """Wrapper with loading state."""
     try:
         # Show typing indicator
-        yield history + [{"role": "assistant", "content": "⏳ Thinking..."}]
+        yield "⏳ Thinking..."
         
         # Start streaming actual response
-        accumulated = ""
+        #accumulated = ""
         for chunk in gradio_assistant.stream_chat(message, history, 3):
-            accumulated = chunk
-            yield history + [{"role": "assistant", "content": accumulated}]
+            #accumulated = chunk
+            yield chunk
     except Exception as e:
         logger.exception("Error in chat")
-        yield history + [{"role": "assistant", "content": f"❌ Error: {str(e)}"}]
+        yield f"❌ Error: {str(e)}"
 
 # Customize the chatbot display
 custom_chatbot = gr.Chatbot(

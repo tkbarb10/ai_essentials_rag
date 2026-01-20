@@ -13,6 +13,7 @@ data/**/*
 *chroma
 *.csv
 *.json
+persist_parent_docs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

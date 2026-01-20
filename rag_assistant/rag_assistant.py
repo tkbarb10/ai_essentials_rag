@@ -221,6 +221,9 @@ class RAGAssistant:
         """
         self.vector_db.add_documents(documents)
 
+    def search(self, query: str, k: int):
+        return self.vector_db.similarity_search_with_relevance_scores(query=query, k=k)
+
     def invoke(self, query: str, conversation: Optional[List]=[], n_results: int = 3) -> str:
         """
         Query the RAG assistant.
@@ -234,7 +237,7 @@ class RAGAssistant:
             The LLM answer as a string.
         """
         start = time.perf_counter()
-        docs = self.vector_db.similarity_search_with_relevance_scores(query=query, k=n_results)
+        docs = self.search(query=query, k=n_results)
         finish = time.perf_counter()
 
         context = self._format_docs_with_metadata(docs)
