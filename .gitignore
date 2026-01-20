@@ -20,6 +20,7 @@ outputs/metadata/*
 !outputs/metadata/.gitkeep
 *.csv
 *.json
+utils/regex_for_blueprint_text.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

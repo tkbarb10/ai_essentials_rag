@@ -1,0 +1,44 @@
+MODEL_CONFIG:
+  model: openai/gpt-oss-20b
+  model_provider: groq
+  temperature: 0.5
+  reasoning_effort: medium
+  max_retries: 2
+
+EMBEDDING_MODEL: google/embeddinggemma-300m
+
+TEXT_SPLIT:
+  chunk_size: 1000
+  chunk_overlap: 150
+  headers_to_split_on:
+    - ["#", "Header 1"]
+    - ["##", "Header 2"]
+    - ["###", "Header 3"]
+
+VECTOR_STORE:
+  default_persist_path: "./chroma/rag_material"
+  default_collection_name: "default_collection"
+  collection_metadata:
+    hnsw:space: "cosine"
+
+RAG:
+  default_n_results: 3
+  default_prompt_template: "educational_assistant"
+
+APP:
+  topic: "Blueprint Text Analytics in Python textbook"
+  collection_name: "blueprint_text_analytics"
+  components:
+    tones: "conversational"
+    reasoning_strategies: "Self-Ask"
+    tools: true
+  gradio:
+    title: "Blueprints for Text Analytics in Python Textbook"
+    description: "Ask questions about NLP solutions for real world problems"
+    server_name: "127.0.0.1"
+    server_port: 7860
+    share: true
+    examples:
+      - "How can I build a simple preprocessing pipeline for text data?"
+      - "What are n-grams and how are they relevant to machine learning?"
+      - "What are popular libraries in python for NLP?"

@@ -12,6 +12,7 @@ from pathlib import Path
 from utils.chunk_content import chunk_markdown_text
 from vector_store.initialize import create_vector_store, initialize_embedding_model
 from utils.logging_helper import setup_logging
+from config.load_env import TEXT_SPLIT, VECTOR_STORE
 import sys
 import os
 
@@ -20,8 +21,8 @@ logger = setup_logging(name='insert_docs')
 
 def upload_content_to_store(
         documents_path: str | Path,
-        persist_path: str="./chroma/rag",
-        collection_name: str="default_rag",
+        persist_path: Optional[str]=None,
+        collection_name: Optional[str]=None,
         store: Optional[Any]=None,
         **kwargs
         ):
@@ -33,11 +34,13 @@ def upload_content_to_store(
 
     Args:
         documents_path: Path to a file or directory containing documents.
-        persist_path: Directory for Chroma persistence (used if store is None).
-        collection_name: Collection name (used if store is None).
+        persist_path: Directory for Chroma persistence. Defaults to VECTOR_STORE config.
+        collection_name: Collection name. Defaults to VECTOR_STORE config.
         store: Optional pre-initialized vector store. If None, creates one.
         **kwargs: Arguments passed to chunk_markdown_text() for chunking config.
     """
+    persist_path = persist_path or VECTOR_STORE['default_persist_path']
+    collection_name = collection_name or VECTOR_STORE['default_collection_name']
     if not store:
         print("Initializing store connection...")
         embedding_model = initialize_embedding_model()
@@ -73,20 +76,23 @@ if __name__ == "__main__":
 
     # Prompt for persist_path if not provided
     if not persist_path:
-        user_path = input("\nType in the path where your vector store is or where you'd like to create it: ")
+        default_path = VECTOR_STORE['default_persist_path']
+        user_path = input(f"\nType in the path where your vector store is or where you'd like to create it (default: {default_path}): ")
         if user_path.strip():
             persist_path = user_path.strip()
         else:
-            persist_path = "./chroma/rag_material"
+            persist_path = default_path
             logger.info(f"User didn't provide a user_path so creating it at {persist_path}")
 
     # Prompt for collection_name if not provided
     if not collection_name:
-        collection_name = input("\nType in the name of your collection: ")
-        if not collection_name.strip():
-            collection_name = "user_collection"
+        default_collection = VECTOR_STORE['default_collection_name']
+        user_collection = input(f"\nType in the name of your collection (default: {default_collection}): ")
+        if user_collection.strip():
+            collection_name = user_collection.strip()
+        else:
+            collection_name = default_collection
             logger.info(f"User provided empty collection name so using {collection_name}")
-        collection_name = collection_name.strip()
 
     # Prompt for documents_path if not provided
     if not documents_path:

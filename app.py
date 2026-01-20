@@ -7,7 +7,8 @@ RAG-based context retrieval with streaming LLM responses and tool calling.
 The app uses a custom theme with gradient animations and a polished chat UI.
 """
 
-from config.load_env import load_env
+from config.load_env import load_env, APP
+from config.types import ComponentsDict
 from rag_assistant.rag_assistant import RAGAssistant
 from rag_assistant.gradio_interface import GradioInterface
 from gradio import themes
@@ -16,17 +17,14 @@ from gradio.themes.utils import sizes
 
 load_env()
 
-# Use default comps for prompt
-components = {"tones": "conversational", "reasoning_strategies": "Self-Ask", "tools": True}
+# Load components from settings
+components: ComponentsDict = APP['components']
 
-# Initialize RAG Assistant
-# Default to Blueprint Analytics textbook with educational_assistant prompt
+# Initialize RAG Assistant using APP settings
 assistant = RAGAssistant(
-    persist_path="./chroma/rag",
-    collection_name="blueprint_text_analytics",
-    topic="Blueprint Text Analytics in Python textbook",
-    prompt_template='educational_assistant',
-    components=components  # Includes tools, tones, reasoning_strategies
+    topic=APP['topic'],
+    collection_name=APP['collection_name'],
+    components=components
 )
 
 gradio_assistant = GradioInterface(assistant)
@@ -150,22 +148,24 @@ h1 {
 
 demo = gr.ChatInterface(
     fn=gradio_chat,
-    title="Blueprints for Text Analytics in Python Textbook",
+    title=APP['gradio']['title'],
     chatbot=custom_chatbot,
     textbox=custom_textbox,
     editable=True,
-    description="Ask questions about NLP solutions for real world problems",
-    examples=[
-        "How can I build a simple preprocessing pipeline for text data?",
-        "What are n-grams and how are they relevant to machine learning?",
-        "What are popular libraries in python for NLP?"
-    ]
+    description=APP['gradio']['description'],
+    examples=APP['gradio']['examples']
 )
 
 if __name__ == "__main__":
 
     try:
-        demo.launch(share=True, server_name="127.0.0.1", server_port=7860, theme=custom_theme, css=custom_css)
+        demo.launch(
+            share=APP['gradio']['share'],
+            server_name=APP['gradio']['server_name'],
+            server_port=APP['gradio']['server_port'],
+            theme=custom_theme,
+            css=custom_css
+        )
     except Exception as e:
         print(f"Failed to launch: {e}")
         logger.exception(f"Failure to launch {e}")

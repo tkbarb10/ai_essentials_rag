@@ -133,8 +133,10 @@ ai_essentials_rag/
 ├── README.md                       # This file
 │
 ├── config/                         # Configuration files
+│   ├── settings.yaml               # Centralized settings (models, chunking, app config)
 │   ├── paths.py                    # File path configurations
-│   └── load_env.py                 # Load your API keys and model configurations
+│   ├── types.py                    # Type definitions (ComponentsDict, etc.)
+│   └── load_env.py                 # Load API keys and settings exports
 │
 ├── ingestion/                      # Stage 1: Data ingestion
 │   ├── scrape.py                   # Web scraping with Tavily
@@ -442,6 +444,118 @@ Then open your browser to `http://localhost:7860` and start chatting!
 ---
 
 ## ⚙️ Configuration & Customization
+
+### Centralized Settings
+
+All core application settings are centralized in a single configuration file located at `config/settings.yaml`. This makes it easy to customize the behavior of the entire pipeline without modifying code.
+
+**Location:** `config/settings.yaml`
+
+#### Settings Overview
+
+| Section | Purpose | Key Settings |
+|---------|---------|--------------|
+| `MODEL_CONFIG` | LLM configuration | `model`, `model_provider`, `temperature`, `max_retries` |
+| `EMBEDDING_MODEL` | Vector embedding model | HuggingFace model name |
+| `TEXT_SPLIT` | Document chunking | `chunk_size`, `chunk_overlap`, `headers_to_split_on` |
+| `VECTOR_STORE` | Chroma DB defaults | `default_persist_path`, `default_collection_name`, `collection_metadata` |
+| `RAG` | RAG assistant defaults | `default_n_results`, `default_prompt_template` |
+| `APP` | Gradio app configuration | `topic`, `collection_name`, `components`, `gradio` settings |
+
+#### Example Configuration
+
+```yaml
+MODEL_CONFIG:
+  model: openai/gpt-oss-20b
+  model_provider: groq
+  temperature: 0.5
+  reasoning_effort: medium
+  max_retries: 2
+
+EMBEDDING_MODEL: google/embeddinggemma-300m
+
+TEXT_SPLIT:
+  chunk_size: 1000
+  chunk_overlap: 150
+  headers_to_split_on:
+    - ["#", "Header 1"]
+    - ["##", "Header 2"]
+    - ["###", "Header 3"]
+
+VECTOR_STORE:
+  default_persist_path: "./chroma/rag_material"
+  default_collection_name: "default_collection"
+  collection_metadata:
+    hnsw:space: "cosine"
+
+RAG:
+  default_n_results: 3
+  default_prompt_template: "educational_assistant"
+
+APP:
+  topic: "Blueprint Text Analytics in Python textbook"
+  collection_name: "blueprint_text_analytics"
+  components:
+    tones: "conversational"
+    reasoning_strategies: "Self-Ask"
+    tools: true
+  gradio:
+    title: "Blueprints for Text Analytics in Python Textbook"
+    description: "Ask questions about NLP solutions for real world problems"
+    server_name: "127.0.0.1"
+    server_port: 7860
+    share: true
+    examples:
+      - "How can I build a simple preprocessing pipeline for text data?"
+      - "What are n-grams and how are they relevant to machine learning?"
+```
+
+#### How to Use
+
+Settings are automatically loaded and exported from `config/load_env.py`. Import the settings you need:
+
+```python
+from config.load_env import MODEL_CONFIG, EMBEDDING_MODEL, TEXT_SPLIT, VECTOR_STORE, RAG, APP
+
+# Use settings directly
+print(f"Using model: {MODEL_CONFIG['model']}")
+print(f"Chunk size: {TEXT_SPLIT['chunk_size']}")
+```
+
+#### Common Customizations
+
+**Change the LLM model:**
+```yaml
+MODEL_CONFIG:
+  model: meta-llama/llama-3-70b
+  model_provider: groq
+  temperature: 0.7
+```
+
+**Adjust chunking for longer documents:**
+```yaml
+TEXT_SPLIT:
+  chunk_size: 1500
+  chunk_overlap: 200
+```
+
+**Configure the Gradio app for a different domain:**
+```yaml
+APP:
+  topic: "Your Custom Knowledge Base"
+  collection_name: "your_collection"
+  components:
+    tones: "professional"
+    reasoning_strategies: "CoT"
+    tools: false
+  gradio:
+    title: "Your Custom Assistant"
+    description: "Ask questions about your domain"
+```
+
+> **💡 Tip:** Changes to `settings.yaml` take effect the next time you run any script or restart the Gradio app. No code changes required!
+
+---
 
 ### YAML Prompt System
 
@@ -822,6 +936,20 @@ This project is licensed under the Apcahe 2.0 License - see the [LICENSE](LICENS
 
 ### Primary Reference
 "Blueprints for Text Analytics Using Python" by Jens Albrecht, Sidharth Ramachandran, and Christian Winkler (O'Reilly, 2021), 978-1-492-07408-3.
+
+### Model Usage Rights
+
+#### Embedding Model
+- **Model**: [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+- **Provider**: Sentence Transformers (HuggingFace)
+- **License**: Apache 2.0
+- **Usage Rights**: Permits commercial use, modification, distribution, and private use. Provided "as-is" with no warranties.
+
+#### LLM Inference
+- **Provider**: [Groq](https://groq.com/)
+- **Models Used**: `gpt-oss-20b`, `gpt-oss-120b`
+- **Terms of Service**: [Groq AI Policy](https://console.groq.com/docs/legal/ai-policy)
+- **Key Terms**: Users are responsible for all decisions made based on AI outputs and must verify accuracy for consequential decisions. Prohibits illegal/harmful activities, misinformation, and high-risk automated decisions without human oversight.
 
 ### Tools & Frameworks
 - [Langchain](https://python.langchain.com/) - LLM application framework

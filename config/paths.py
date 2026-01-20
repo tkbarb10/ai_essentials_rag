@@ -13,6 +13,7 @@ Module Attributes:
     OUTPUTS_DIR: Directory for generated outputs and logs.
     DATA_DIR: Directory for input data files.
     RESPONSE_METADATA: Directory for LLM response metadata CSVs.
+    SETTINGS: Configuration file for models and text splitting specs
 """
 
 import os
@@ -34,6 +35,7 @@ COMPONENTS_FPATH = os.path.join(PROMPTS_DIR, "components.yaml")
 OUTPUTS_DIR = os.path.join(ROOT_DIR, "outputs")
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 RESPONSE_METADATA = os.path.join(OUTPUTS_DIR, "metadata")
+SETTINGS = os.path.join(ROOT_DIR, "config/settings.yaml")
 
 # PUBLICATION_FPATH = os.path.join(DATA_DIR, "publication.md")
 

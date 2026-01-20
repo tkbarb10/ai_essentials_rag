@@ -1,6 +1,7 @@
-from typing import List, Optional, Dict, Any, Literal, TypedDict
-from config.load_env import load_env, MODEL_CONFIG
+from typing import List, Optional, Dict, Any
+from config.load_env import load_env, MODEL_CONFIG, EMBEDDING_MODEL, VECTOR_STORE, RAG
 from config.paths import PROMPTS_DIR
+from config.types import ComponentsDict
 from langchain_core.prompts import ChatPromptTemplate
 from utils.load_yaml_config import load_all_prompts
 from utils.prompt_builder import build_prompt
@@ -12,20 +13,8 @@ from utils.chunk_content import chunk_markdown_text
 from utils.logging_helper import setup_logging
 import time
 
-# Log the scores and time for query
-
 # Load environment variables
-env_config = load_env()
-
-# Type definitions for components
-ToneType = Literal['conversational', 'professional', 'technical']
-ReasoningStrategyType = Literal['CoT', 'ReAct', 'Self-Ask']
-
-class ComponentsDict(TypedDict, total=False):
-    """Type definition for the components parameter."""
-    tones: ToneType
-    reasoning_strategies: ReasoningStrategyType
-    tools: bool
+load_env()
 
 
 class RAGAssistant:
@@ -94,9 +83,9 @@ class RAGAssistant:
     def __init__(
         self,
         topic: str,
-        persist_path: str = "./chroma/rag_material",
-        collection_name: str = "default_collection",
-        prompt_template: str = 'educational_assistant',
+        persist_path: Optional[str] = None,
+        collection_name: Optional[str] = None,
+        prompt_template: Optional[str] = None,
         components: Optional[ComponentsDict] = None,
         store: Optional[Any] = None,
         **kwargs
@@ -110,9 +99,9 @@ class RAGAssistant:
         Args:
             topic: The domain topic this assistant specializes in. Replaces {topic}
                 placeholders in prompts (e.g., "Blueprint Text Analytics in Python").
-            persist_path: Directory path for Chroma database persistence.
-            collection_name: Name of the Chroma collection to create or load.
-            prompt_template: Name of the prompt template from prompts YAML config.
+            persist_path: Directory path for Chroma database persistence. Defaults to VECTOR_STORE config.
+            collection_name: Name of the Chroma collection to create or load. Defaults to VECTOR_STORE config.
+            prompt_template: Name of the prompt template from prompts YAML config. Defaults to RAG config.
             components: Optional dict of reusable prompt components with these keys:
                 - 'tones': One of 'conversational', 'professional', or 'technical'
                 - 'reasoning_strategies': One of 'CoT', 'ReAct', or 'Self-Ask'
@@ -124,6 +113,9 @@ class RAGAssistant:
         Raises:
             ValueError: If the LLM fails to initialize (check MODEL_CONFIG and API keys).
         """
+        persist_path = persist_path or VECTOR_STORE['default_persist_path']
+        collection_name = collection_name or VECTOR_STORE['default_collection_name']
+        prompt_template = prompt_template or RAG['default_prompt_template']
         # Store topic for later use
         self.topic = topic
         self.logger = setup_logging(name='rag_assistant')
@@ -146,7 +138,7 @@ class RAGAssistant:
             ) from e
 
         # Initialize Embedding Model
-        self.embed_model = initialize_embedding_model(model_name=env_config['EMBEDDING_MODEL'])
+        self.embed_model = initialize_embedding_model(model_name=EMBEDDING_MODEL)
 
         # Initialize vector database
         if store:
@@ -161,7 +153,7 @@ class RAGAssistant:
 
         # Create RAG prompt template
         self.prompt_template = self._build_prompt_template(
-            prompt_name=prompt_template,
+            prompt_name=prompt_template, # type: ignore
             topic=topic,
             components=components
         )
@@ -211,7 +203,7 @@ class RAGAssistant:
             prompt = build_prompt(
                 config=prompt_config,
                 topic=topic,
-                components=components
+                components=components # type: ignore
             )
 
             self.logger.info(f"Built prompt template '{prompt_name}' with topic '{topic}'")
@@ -283,7 +275,7 @@ class RAGAssistant:
         """
         return self.vector_db.similarity_search_with_relevance_scores(query=query, k=k)
 
-    def invoke(self, query: str, conversation: Optional[List]=[], n_results: int = 3) -> str:
+    def invoke(self, query: str, conversation: Optional[List]=[], n_results: Optional[int] = None) -> str:
         """Query the RAG assistant and get a response.
 
         Retrieves relevant context from the vector store, formats it with the
@@ -294,7 +286,7 @@ class RAGAssistant:
             query: User's question or input string.
             conversation: Prior conversation history as list of message dicts,
                 each with 'role' ('user' or 'assistant') and 'content' keys.
-            n_results: Number of documents to retrieve from vector store.
+            n_results: Number of documents to retrieve from vector store. Defaults to RAG config.
 
         Returns:
             LLM-generated response as a string.
@@ -303,6 +295,7 @@ class RAGAssistant:
             ValueError: If conversation contains malformed messages missing
                 required 'role' or 'content' keys.
         """
+        n_results = n_results or RAG['default_n_results']
         # Validate conversation history
         if conversation:
             for i, msg in enumerate(conversation):
@@ -314,7 +307,7 @@ class RAGAssistant:
                     raise ValueError(f"Conversation item at index {i} is missing required 'content' key: {msg}")
 
         start = time.perf_counter()
-        docs = self.search(query=query, k=n_results)
+        docs = self.search(query=query, k=n_results) # type: ignore
         finish = time.perf_counter()
 
         context = self._format_docs_with_metadata(docs)
@@ -393,8 +386,8 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="RAG Assistant to query your vector store")
     parser.add_argument('--documents-path', type=str, default=None, help='Where your docs are stored if you wish to upload any')
-    parser.add_argument('--persist-path', type=str, default="./chroma/rag", help='Path to save vector store embeddings')
-    parser.add_argument('--collection-name', type=str, default="blueprint_text_analytics", help='Name of the Chroma collection to create or load')
+    parser.add_argument('--persist-path', type=str, default=None, help='Path to save vector store embeddings. Defaults to VECTOR_STORE config')
+    parser.add_argument('--collection-name', type=str, default=None, help='Name of the Chroma collection to create or load. Defaults to VECTOR_STORE config')
     parser.add_argument('--topic', type=str, default="Blueprint Analytics in Python textbook", help='Topic this RAG assistant specializes in')
     parser.add_argument('--kwargs', type=pydict_type, default=None, help='Additional kwargs to pass to the assistant.  If using powershell, wrap full arg in """arg""" and internal keys/values in single quotes')
 

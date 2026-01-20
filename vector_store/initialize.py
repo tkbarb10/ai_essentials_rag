@@ -13,11 +13,12 @@ import torch
 from typing import Optional
 from utils.kwarg_parser import parse_value
 from utils.logging_helper import setup_logging
+from config.load_env import EMBEDDING_MODEL, VECTOR_STORE
 
 logger = setup_logging(name="initialize")
 
 
-def initialize_embedding_model(model_name: str="sentence-transformers/all-MiniLM-L6-v2", model_kwargs: dict={}, encode_kwargs: Optional[dict]={}):
+def initialize_embedding_model(model_name: Optional[str]=None, model_kwargs: dict={}, encode_kwargs: Optional[dict]={}):
     """Initialize a HuggingFace embedding model with automatic device selection.
 
     Detects available hardware (CUDA GPU, Apple MPS, or CPU) and configures the
@@ -25,7 +26,7 @@ def initialize_embedding_model(model_name: str="sentence-transformers/all-MiniLM
     for debugging.
 
     Args:
-        model_name: HuggingFace model identifier (default: all-MiniLM-L6-v2).
+        model_name: HuggingFace model identifier. Defaults to EMBEDDING_MODEL from settings.
         model_kwargs: Arguments passed to the model (device is auto-added).
         encode_kwargs: Arguments passed to the encode method
             (e.g., normalize_embeddings).
@@ -33,6 +34,7 @@ def initialize_embedding_model(model_name: str="sentence-transformers/all-MiniLM
     Returns:
         Configured HuggingFaceEmbeddings instance ready for vectorization.
     """
+    model_name = model_name or EMBEDDING_MODEL
 
     device = (
         "cuda"
@@ -53,7 +55,7 @@ def initialize_embedding_model(model_name: str="sentence-transformers/all-MiniLM
     return model
 
 
-def create_vector_store(persist_path: str, collection_name: str, embedding_model=None, collection_metadata={"hnsw:space": "cosine"}, **kwargs):
+def create_vector_store(persist_path: Optional[str]=None, collection_name: Optional[str]=None, embedding_model=None, collection_metadata: Optional[dict]=None, **kwargs):
     """Create or load a Chroma vector store.
 
     Initializes a LangChain Chroma wrapper that persists data to disk. If a
@@ -61,17 +63,21 @@ def create_vector_store(persist_path: str, collection_name: str, embedding_model
     collection is created.
 
     Args:
-        persist_path: Directory path for Chroma database persistence.
-        collection_name: Name of the collection to create or load.
+        persist_path: Directory path for Chroma database persistence. Defaults to VECTOR_STORE config.
+        collection_name: Name of the collection to create or load. Defaults to VECTOR_STORE config.
         embedding_model: HuggingFaceEmbeddings instance for vectorization.
-        collection_metadata: Chroma collection config (default: cosine similarity).
+        collection_metadata: Chroma collection config. Defaults to VECTOR_STORE config.
         **kwargs: Additional arguments passed to Chroma constructor.
 
     Returns:
         Configured Chroma vector store instance.
     """
+    persist_path = persist_path or VECTOR_STORE['default_persist_path']
+    collection_name = collection_name or VECTOR_STORE['default_collection_name']
+    collection_metadata = collection_metadata or VECTOR_STORE['collection_metadata']
+
     store = Chroma(
-        collection_name=collection_name,
+        collection_name=collection_name, # type: ignore
         embedding_function=embedding_model,
         persist_directory=persist_path,
         collection_metadata=collection_metadata,
@@ -87,7 +93,7 @@ if __name__ == "__main__":
     import sys
     
     parser = argparse.ArgumentParser(description="Initialize embedding model and create/load a Chroma vector store")
-    parser.add_argument('--model-name', type=str, default="sentence-transformers/all-MiniLM-L6-v2", help='HuggingFace embedding model name')
+    parser.add_argument('--model-name', type=str, default=None, help='HuggingFace embedding model name. Defaults to EMBEDDING_MODEL from settings.yaml')
     parser.add_argument('--model-kwargs', type=pydict_type, default="{}", help='Model arguments to pass to embedding model.  Pass as dictionary string')
     parser.add_argument('--encode-kwargs', type=pydict_type, default="{}", help='Model arguments to pass to encoding method.  Pass as dictionary string')
     parser.add_argument('--persist-path', type=str, default=None, help='Path to save vector store embeddings')
@@ -105,9 +111,9 @@ if __name__ == "__main__":
 
     print(encode_kwargs)
 
-    # Prompt for model if still using default
-    if model_name == "sentence-transformers/all-MiniLM-L6-v2":
-        user_choice = input("\nEnter the embedding model name you wish to use. If you're ok with the default (all-MiniLM-L6-v2), just hit Enter: ")
+    # Prompt for model if not provided
+    if model_name is None:
+        user_choice = input(f"\nEnter the embedding model name you wish to use. If you're ok with the default ({EMBEDDING_MODEL}), just hit Enter: ")
         if user_choice.strip():
             model_name = user_choice.strip()
 
@@ -130,20 +136,21 @@ if __name__ == "__main__":
 
     # Prompt for persist_path if not provided
     if not persist_path:
-        user_path = input("Type in the path you wish to save the vector store embeddings to, or hit Enter to keep the default. The default path is ./chroma/rag_material: ")
+        default_path = VECTOR_STORE['default_persist_path']
+        user_path = input(f"Type in the path you wish to save the vector store embeddings to, or hit Enter to keep the default ({default_path}): ")
         if user_path.strip():
             persist_path = user_path.strip()
         else:
-            persist_path = "./chroma/rag_material"
+            persist_path = default_path
 
     # Prompt for collection_name if not provided
     if not collection_name:
-        collection_name = input("\nType in what you wish to name the vector store collection, or the collection you wish to load if one already exists: ")
-        if not collection_name.strip():
-            print("Collection name cannot be empty. Exiting program.")
-            logger.error("User provided empty collection name")
-            sys.exit(1)
-        collection_name = collection_name.strip()
+        default_collection = VECTOR_STORE['default_collection_name']
+        user_collection = input(f"\nType in what you wish to name the vector store collection, or hit Enter for default ({default_collection}): ")
+        if user_collection.strip():
+            collection_name = user_collection.strip()
+        else:
+            collection_name = default_collection
 
     # Prompt for kwargs to pass to Chroma (always interactive)
     kwargs = {}

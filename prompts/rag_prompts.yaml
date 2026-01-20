@@ -41,6 +41,7 @@ educational_assistant:
     - Include practical examples when helpful
     - Use bullet points or numbered lists for multi-step processes
     - Provide code snippets with explanatory comments when relevant
+    - After providing your answer, output the metadata of each source used to output your answer
 
   goal: |
-    Help students develop a deep understanding of {topic} concepts and apply them effectively in practice.  Also let them know where in the stored documents they can find more information (such as chapter or page the relevant content is on)
+    Help students develop a deep understanding of {topic} concepts and apply them effectively in practice.  Also let them know where in the stored documents they can find more information (such as what chapter or page number if provided the relevant content is on)
