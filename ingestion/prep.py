@@ -1,3 +1,12 @@
+"""Content preparation module for vector store ingestion.
+
+This module preprocesses cleaned web content using an LLM to organize and structure
+it in markdown format suitable for chunking and storage in a vector database. The
+LLM categorizes sections and removes redundant information.
+
+Can be run as a CLI tool to interactively prepare content files.
+"""
+
 from utils.load_yaml_config import load_all_prompts
 from utils.prompt_builder import build_prompt
 from config.load_env import load_env, MODEL_CONFIG
@@ -32,18 +41,20 @@ def prepare_web_content(
     file_path: Path | str,
     **kwargs
 ):
-    """Send cleaned web content to the LLM for preprocessing and save output.
+    """Preprocess cleaned content for vector store ingestion using an LLM.
+
+    Reads cleaned content from a file, sends it to the LLM with structuring
+    instructions, and saves the organized markdown output to the data directory.
+    The LLM removes redundant information and formats content with headers.
 
     Args:
         file_path: Path to the cleaned content file to preprocess.
-        categories: Optional list of categories for organizing content.
-            If None, DEFAULT_CATEGORIES will be used.
-        model: LLM model identifier to use.
-        reasoning_effort: Provider-specific reasoning effort setting.
-        **kwargs: Additional keyword arguments forwarded to the LLM call.
+        **kwargs: Additional arguments passed to build_prompt() for prompt
+            customization (e.g., categories, topic).
 
-    Returns:
-        No return.  If successful, file is saved to the OUTPUTS directory and response metadata is logged
+    Note:
+        Output is saved to DATA_DIR with a timestamped filename. Response
+        metadata is logged for tracking. Exits with code 1 if file not found.
     """
 
     # Build prompt with categories placeholder substitution

@@ -1,16 +1,26 @@
+"""File loading utilities for document ingestion.
+
+This module provides functions to load text and markdown files from disk,
+either individually or recursively from directories.
+"""
+
 from pathlib import Path
 from typing import List, Union
 
+
 def load_files_as_list(documents_path: Union[str, Path]) -> List[str]:
-    """Load .txt and .md files from a file or directory and return their contents.
+    """Load text and markdown files and return their contents as strings.
+
+    Supports loading a single file or recursively loading all .txt and .md files
+    from a directory. Prints progress messages for each file loaded.
 
     Args:
-        documents_path: A file path or directory path. If a file, only .txt and .md
-            files are supported.
+        documents_path: Path to a single file or directory. For single files,
+            only .txt and .md extensions are supported.
 
     Returns:
-        A list of file contents as strings. If no files are found or errors occur,
-        an empty list is returned. Note: this function logs progress via print().
+        List of file contents as strings. Returns empty list if path doesn't
+        exist or no supported files are found.
     """
     root = Path(documents_path)
     file_list = []

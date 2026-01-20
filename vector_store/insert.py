@@ -1,3 +1,11 @@
+"""Document insertion utilities for populating vector stores.
+
+This module provides functions to load documents from disk, chunk them into
+smaller pieces suitable for embedding, and upload them to a Chroma vector store.
+
+Can be run as a CLI tool to interactively add documents to a vector store.
+"""
+
 from typing import Optional, Any
 from utils.load_files import load_files_as_list
 from pathlib import Path
@@ -12,18 +20,23 @@ logger = setup_logging(name='insert_docs')
 
 def upload_content_to_store(
         documents_path: str | Path,
-        persist_path: str="./chroma/rag", 
-        collection_name: str="default_rag", 
-        store: Optional[Any]=None, 
+        persist_path: str="./chroma/rag",
+        collection_name: str="default_rag",
+        store: Optional[Any]=None,
         **kwargs
         ):
-    
-    """Load, chunk, and upload documents into a vector store.
+    """Load, chunk, and upload documents to a vector store.
+
+    Reads text/markdown files from the specified path, chunks them using
+    markdown-aware splitting, and adds the resulting documents to a Chroma
+    vector store. Initializes a new store if none is provided.
 
     Args:
-        store: Vector store instance with an add_documents method.
-        documents_path: File or directory path containing documents to ingest.
-        **kwargs: Chunking keyword arguments forwarded to chunk_markdown_text.
+        documents_path: Path to a file or directory containing documents.
+        persist_path: Directory for Chroma persistence (used if store is None).
+        collection_name: Collection name (used if store is None).
+        store: Optional pre-initialized vector store. If None, creates one.
+        **kwargs: Arguments passed to chunk_markdown_text() for chunking config.
     """
     if not store:
         print("Initializing store connection...")

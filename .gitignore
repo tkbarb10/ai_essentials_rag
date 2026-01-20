@@ -4,13 +4,11 @@
 .vscode
 */__pycache__
 *.log
-*tests
 pytest.ini
 uv.lock
 *.txt
 *.ipynb
 data/**/*
-*chroma
 *.csv
 *.json
 persist_parent_docs

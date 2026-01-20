@@ -1,3 +1,12 @@
+"""Web scraping module using the Tavily API for site mapping and content extraction.
+
+This module provides functions to crawl websites starting from a root URL, discover
+linked pages up to a specified depth, and extract raw markdown content from each
+discovered page. Uses the Tavily client for efficient web crawling and extraction.
+
+Can be run as a CLI tool to interactively scrape and save website content.
+"""
+
 from tavily import TavilyClient
 from config.load_env import load_env
 from utils.kwarg_parser import parse_value
@@ -16,17 +25,20 @@ load_env()
 tavily_client = TavilyClient()
 
 def website_map(root_url: str, instructions: str='Avoid returning utility links', max_depth: int=5, include_usage: bool=True, **kwargs):
-    """Fetch a crawl map of URLs starting at a root location.
+    """Crawl a website and return discovered URLs.
+
+    Uses the Tavily API to map a website starting from the root URL, discovering
+    linked pages up to the specified depth. Logs response time and API credit usage.
 
     Args:
-        root_url: Starting URL to map.
-        instructions: Provider-specific mapping instructions.
-        max_depth: Maximum depth to crawl from the root URL.
-        include_usage: Whether to include provider usage metadata in the response.
-        **kwargs: Additional keyword arguments passed to the map request.
+        root_url: Starting URL to begin crawling from.
+        instructions: Filtering instructions for the crawler (e.g., link types to skip).
+        max_depth: Maximum link depth to crawl (1-5).
+        include_usage: Whether to include API usage metadata in response.
+        **kwargs: Additional arguments passed to Tavily's map() method.
 
     Returns:
-        Dictionary of mapping results returned by the Tavily client.
+        List of discovered URLs, or None if the mapping fails.
     """
     logger.info(f"root_url: {root_url}\ninstructions: {instructions}\nmax_depth: {max_depth}\nOther key word args: {kwargs}")
 
@@ -75,13 +87,17 @@ def website_map(root_url: str, instructions: str='Avoid returning utility links'
 
 
 def extract_content(url_list: List[str]) -> List[Dict]:
-    """Extract raw markdown content for each URL group.
+    """Extract raw content from a list of URLs using Tavily.
+
+    Iterates through each URL and extracts page content using Tavily's extract
+    API. Tracks cumulative response time and credit usage. Failed extractions
+    are logged but don't stop processing.
 
     Args:
-        url_dict: Mapping of group names to lists of URLs.
+        url_list: List of URLs to extract content from.
 
     Returns:
-        Dictionary of extraction results keyed by group.
+        List of extraction result dicts containing 'raw_content' and metadata.
     """
     result_set = []
     response_time = 0
@@ -112,17 +128,21 @@ def extract_content(url_list: List[str]) -> List[Dict]:
 
 
 def raw_web_content(root_url: str, instructions: str="Avoid returning utility links", max_depth: int=5, include_usage: bool=True, **kwargs):
-    """Map a site, extract markdown content, and return raw strings.
+    """Crawl a website and extract raw content from all discovered pages.
+
+    Combines website_map() and extract_content() to perform end-to-end web
+    scraping. First maps the site to discover URLs, then extracts raw markdown
+    content from each discovered page.
 
     Args:
-        root_url: Starting URL to map.
-        instructions: Provider-specific mapping instructions.
-        max_depth: Maximum depth to crawl from the root URL.
-        include_usage: Whether to include provider usage metadata in the response.
-        **kwargs: Additional keyword arguments passed to the map request.
+        root_url: Starting URL to begin crawling from.
+        instructions: Filtering instructions for the crawler.
+        max_depth: Maximum link depth to crawl (1-5).
+        include_usage: Whether to include API usage metadata.
+        **kwargs: Additional arguments passed to Tavily's map() method.
 
     Returns:
-        List of raw markdown content strings from extracted pages.
+        List of raw content strings extracted from each discovered page.
     """
     url_list = website_map(
         root_url=root_url,

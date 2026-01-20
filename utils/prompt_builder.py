@@ -1,3 +1,10 @@
+"""Prompt assembly utilities for building LLM system prompts.
+
+This module provides functions to assemble system prompts from YAML configuration
+files, supporting dynamic placeholder substitution, modular components (tones,
+reasoning strategies, tools), and optional context injection for RAG.
+"""
+
 from typing import Dict, Any, List, Union, Optional
 from utils.logging_helper import setup_logging
 from utils.load_yaml_config import load_yaml_config
@@ -11,16 +18,16 @@ comp_options = load_yaml_config(COMPONENTS_FPATH)
 
 
 def format_prompt_section(lead_in: str, value: Union[str, List[str]]) -> str:
-    """Format a prompt section by joining a lead-in with content.
+    """Format a prompt section with a header and content.
 
-    If `value` is a list, each item will be rendered as a bullet line ("- item").
+    Combines a lead-in header with content, formatting lists as bullet points.
 
     Args:
-        lead_in: Lead-in sentence for the section.
-        value: Section content, either a single string or list of strings.
+        lead_in: Section header text (e.g., "Output constraints:").
+        value: Content as a string or list of strings (list items become bullets).
 
     Returns:
-        A single string consisting of the `lead_in` followed by the formatted content.
+        Formatted section string with header and content separated by newline.
     """
     if isinstance(value, list):
         formatted_value = "\n".join(f"- {item}" for item in value)
@@ -37,44 +44,29 @@ def build_prompt(
     categories: Optional[List[str]] = None,
     components: Optional[Dict[str, Any]] = None
 ) -> str:
-    """Assemble a system prompt from configuration and optional context.
+    """Assemble a system prompt from YAML configuration and components.
 
-    The function expects `config` to include an 'instructions' key (ValueError is
-    raised if missing). Optional fields such as 'categories', 'constraints',
-    'tools', 'tone', 'format', 'goal', and 'reasoning_strategies' are supported.
-
-    NEW: Supports {topic} and {categories} placeholders in prompts for dynamic
-    substitution. Components (tone, reasoning_strategies, tools) can be provided
-    separately to enable reusable prompt templates.
+    Builds a complete system prompt by combining role, instructions, constraints,
+    tone, format, goal, and reasoning strategy sections. Supports dynamic {topic}
+    and {categories} placeholder substitution.
 
     Args:
-        config: Prompt configuration mapping containing required 'instructions'
-            and optional metadata fields.
-        context: Optional list of context strings appended to the prompt (rendered
-            as bulleted lines).
-        strategy: Optional key selecting a reasoning strategy from the config or
-            components. Defaults to 'Self-Ask' if not provided.
-        topic: Optional topic name to replace {topic} placeholders in the prompt.
-            If not provided, {topic} placeholders remain unchanged.
-        categories: Optional list of categories to format and replace {categories}
-            placeholder in instructions. Used primarily for prep_prompt.
-        components: Optional dict containing reusable components:
-            - 'tones': Dict of named tone configurations
-            - 'reasoning_strategies': Dict of named reasoning strategies
-            - 'tools': List of tool descriptions
-            If None, defaults are applied: conversational tone, Self-Ask reasoning,
-            tools enabled.
+        config: Prompt configuration dict with required 'instructions' key and
+            optional 'role', 'constraints', 'format', 'goal', 'categories' fields.
+        context: Optional context strings to append (for RAG applications).
+        strategy: Reasoning strategy key (defaults to 'Self-Ask').
+        topic: Topic name to substitute into {topic} placeholders.
+        categories: Category list to substitute into {categories} placeholder.
+        components: Reusable component settings:
+            - 'tones': Key for tone style ('conversational', 'professional', 'technical')
+            - 'reasoning_strategies': Key for reasoning approach ('CoT', 'ReAct', 'Self-Ask')
+            - 'tools': bool to include tool descriptions
 
     Returns:
-        Fully assembled prompt string with all placeholders replaced.
+        Assembled prompt string with sections joined by double newlines.
 
     Raises:
-        ValueError: If the 'instructions' key is missing from the config.
-
-    Example:
-        >>> config = {'instructions': 'Answer questions about {topic}'}
-        >>> components = {'tones': {'conversational': ['Be friendly']}}
-        >>> prompt = build_prompt(config, topic='Healthcare', components=components)
+        ValueError: If config is missing the required 'instructions' field.
     """
     prompt_parts = []
 

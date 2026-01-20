@@ -1,3 +1,12 @@
+"""Web content cleaning module using LLM-based text processing.
+
+This module provides functions to clean raw web content (HTML artifacts, redundant
+text, formatting issues) using an LLM. It processes content in batches while
+respecting rate limits and saves response metadata for tracking.
+
+Can be run as a CLI tool to interactively clean web content from files.
+"""
+
 from config.load_env import load_env, MODEL_CONFIG
 import sys
 from langchain.chat_models import init_chat_model # type: ignore
@@ -39,11 +48,15 @@ except Exception as e:
 def create_message_payload(web_content: List[str] | str, prompt: str) -> List:
     """Build message payloads for LLM cleaning requests.
 
+    Creates a list of chat completion message payloads, one per content string,
+    with the cleaning prompt as the system message.
+
     Args:
-        web_content: List of raw web content strings to clean.
+        web_content: Raw web content string or list of strings to clean.
+        prompt: System prompt instructing the LLM how to clean content.
 
     Returns:
-        List of message payloads suitable for chat completions.
+        List of message payload lists, each containing system and user messages.
     """
     payloads = []
 
@@ -61,16 +74,19 @@ def create_message_payload(web_content: List[str] | str, prompt: str) -> List:
     return payloads
 
 def cleaned_content(web_content: List[str] | str, prompt: str=scrape_prompt, **kwargs):
-    """Clean web content strings using a chat model and return joined output.
+    """Clean web content using an LLM with rate limit awareness.
+
+    Processes each content string through the LLM, tracking token usage to stay
+    within rate limits. Skips content that would exceed the remaining token budget.
+    Saves response metadata to CSV for usage tracking.
 
     Args:
-        web_content: List of raw web content strings to clean.
-        model: LLM model identifier to use.
-        reasoning_effort: Provider-specific reasoning effort setting.
-        temperature: Sampling temperature for the model.
+        web_content: Raw web content string or list of strings to clean.
+        prompt: System prompt for cleaning instructions.
+        **kwargs: Additional arguments passed to init_chat_model().
 
     Returns:
-        Combined cleaned content as a single string.
+        Concatenated cleaned content with section headers separating each piece.
     """
     model = init_chat_model(**MODEL_CONFIG, max_retries=2, **kwargs)
     rate_limit = int(ping())

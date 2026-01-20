@@ -9,14 +9,29 @@ logger = setup_logging(name="gradio_logs")
 chat_logger = setup_logging(name='chat_logs')
 
 class GradioInterface:
-    """Gradio-specific streaming interface for RAG Assistant."""
-    def __init__(self, assistant: RAGAssistant, tools: Optional[List] = None):
+    """Streaming chat interface for RAG Assistant with tool calling support.
 
-        """Initialize Gradio interface.
-        
+    Wraps a RAGAssistant to provide streaming responses suitable for Gradio's
+    ChatInterface component. Supports LangChain tool execution (e.g., web search)
+    with real-time streaming of both initial responses and tool-augmented follow-ups.
+
+    Attributes:
+        assistant: The underlying RAGAssistant instance.
+        vector_db: Reference to the assistant's vector store.
+        logger: Logger for operational events and usage metadata.
+        chat_logger: Logger for conversation history tracking.
+        tools: List of LangChain tools available for the LLM to call.
+        llm_with_tools: LLM instance with tools bound for function calling.
+    """
+
+    def __init__(self, assistant: RAGAssistant, tools: Optional[List] = None):
+        """Initialize the Gradio streaming interface.
+
         Args:
-            assistant: RAGAssistant instance to use for queries.
-            tools: List of LangChain tools to make available.
+            assistant: Configured RAGAssistant instance for context retrieval
+                and prompt management.
+            tools: Optional list of LangChain tools. Defaults to [web_search]
+                if not provided.
         """
         self.assistant = assistant
         self.vector_db = assistant.vector_db
@@ -26,15 +41,21 @@ class GradioInterface:
         self.llm_with_tools = self.assistant.llm.bind_tools(self.tools)
 
     def stream_chat(self, query: str, history: List[dict], n_results: int = 3) -> Generator[str, None, None]:
-        """Stream chat responses for Gradio with RAG and tool calling.
-        
+        """Stream chat responses with RAG context and optional tool execution.
+
+        Retrieves relevant documents, formats the conversation, and streams the
+        LLM response. If the LLM invokes tools (e.g., web search), executes them
+        and streams a follow-up response incorporating the tool results.
+
         Args:
-            query: User's query string.
-            history: Gradio chat history (list of message dicts).
-            n_results: Number of documents to retrieve.
-            
+            query: User's current question or message.
+            history: Gradio conversation history as list of message dicts with
+                'role' and 'content' keys.
+            n_results: Number of documents to retrieve from vector store.
+
         Yields:
-            Incremental response chunks as strings.
+            Accumulated response string after each chunk, suitable for Gradio's
+            streaming display.
         """
 
         # 1. Retrieve context from vector store
@@ -126,25 +147,39 @@ class GradioInterface:
 
     
     def _format_history(self, history: List[dict]) -> List:
-        """Convert Gradio history format to LangChain message format.
-        
+        """Convert Gradio chat history to LangChain message format.
+
+        Transforms Gradio's message format (which may have nested content) into
+        flat dicts with 'role' and 'content' keys for LangChain compatibility.
+
         Args:
-            history: Gradio chat history.
-            
+            history: Gradio chat history as list of message dicts.
+
         Returns:
-            List of formatted message dicts.
+            List of normalized message dicts with string content.
+
+        Raises:
+            ValueError: If messages are missing required 'role' or 'content' keys.
         """
         formatted = []
-        for msg in history:
-            role = msg.get('role')
-            content = msg.get('content')
+        for i, msg in enumerate(history):
+            if not isinstance(msg, dict):
+                raise ValueError(f"History item at index {i} must be a dict, got {type(msg).__name__}")
+
+            if 'role' not in msg:
+                raise ValueError(f"History item at index {i} is missing required 'role' key: {msg}")
+            if 'content' not in msg:
+                raise ValueError(f"History item at index {i} is missing required 'content' key: {msg}")
+
+            role = msg['role']
+            content = msg['content']
 
             if isinstance(content, list) and len(content) > 0:
                 # Extract text from Gradio's nested format
                 text = content[0].get('text', '') if isinstance(content[0], dict) else str(content[0])
             else:
                 text = str(content)
-            
+
             formatted.append({"role": role, "content": text})
-        
+
         return formatted

@@ -1,3 +1,12 @@
+"""Gradio web application for the Blueprint Text Analytics RAG Assistant.
+
+This module launches a Gradio ChatInterface that provides an interactive Q&A
+experience for the Blueprint Text Analytics in Python textbook. It combines
+RAG-based context retrieval with streaming LLM responses and tool calling.
+
+The app uses a custom theme with gradient animations and a polished chat UI.
+"""
+
 from config.load_env import load_env
 from rag_assistant.rag_assistant import RAGAssistant
 from rag_assistant.gradio_interface import GradioInterface
@@ -24,7 +33,18 @@ gradio_assistant = GradioInterface(assistant)
 logger = gradio_assistant.logger
 
 def gradio_chat(message, history):
-    """Wrapper with loading state."""
+    """Handle chat messages with streaming responses and error handling.
+
+    Wraps the GradioInterface.stream_chat method to provide a loading indicator
+    and graceful error handling for the Gradio ChatInterface.
+
+    Args:
+        message: User's input message string.
+        history: Gradio conversation history (list of message dicts).
+
+    Yields:
+        Response chunks for streaming display, or error message on failure.
+    """
     try:
         # Show typing indicator
         yield "⏳ Thinking..."

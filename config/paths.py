@@ -1,3 +1,20 @@
+"""Path constants and directory initialization for the ai_essentials project.
+
+This module defines all file and directory paths used throughout the application,
+including prompt templates, outputs, and data directories. Required directories
+are automatically created on module import if they don't exist.
+
+Module Attributes:
+    ROOT_DIR: Absolute path to the project root directory.
+    PROMPTS_DIR: Directory containing YAML prompt templates.
+    RAG_PROMPTS_FPATH: Path to RAG-specific prompts YAML file.
+    INGESTION_PROMPTS_FPATH: Path to ingestion prompts YAML file.
+    COMPONENTS_FPATH: Path to reusable prompt components YAML file.
+    OUTPUTS_DIR: Directory for generated outputs and logs.
+    DATA_DIR: Directory for input data files.
+    RESPONSE_METADATA: Directory for LLM response metadata CSVs.
+"""
+
 import os
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -1,3 +1,12 @@
+"""Vector store initialization utilities for Chroma with HuggingFace embeddings.
+
+This module provides functions to initialize embedding models and create/load
+Chroma vector stores. Supports automatic device selection (CUDA, MPS, CPU) for
+embedding model inference.
+
+Can be run as a CLI tool to interactively set up a new vector store.
+"""
+
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 import torch
@@ -5,23 +14,24 @@ from typing import Optional
 from utils.kwarg_parser import parse_value
 from utils.logging_helper import setup_logging
 
-logger = setup_logging(name = "initialize")
+logger = setup_logging(name="initialize")
+
 
 def initialize_embedding_model(model_name: str="sentence-transformers/all-MiniLM-L6-v2", model_kwargs: dict={}, encode_kwargs: Optional[dict]={}):
-    """Initialize a HuggingFace embedding model, selecting an appropriate device.
+    """Initialize a HuggingFace embedding model with automatic device selection.
 
-    The function chooses `cuda` if available, otherwise `mps` (Apple silicon),
-    and falls back to `cpu`. It constructs and returns a configured
-    `HuggingFaceEmbeddings` instance with the provided `encode_kwargs` and
-    optional progress display.
+    Detects available hardware (CUDA GPU, Apple MPS, or CPU) and configures the
+    embedding model to use the best available device. Logs the model configuration
+    for debugging.
 
     Args:
-        model_name: HuggingFace model identifier.
-        encode_kwargs: Keyword arguments passed to the encoder (e.g. normalize_embeddings).
-        show_progress: Whether to show embedding progress output.
+        model_name: HuggingFace model identifier (default: all-MiniLM-L6-v2).
+        model_kwargs: Arguments passed to the model (device is auto-added).
+        encode_kwargs: Arguments passed to the encode method
+            (e.g., normalize_embeddings).
 
     Returns:
-        A configured `HuggingFaceEmbeddings` instance.
+        Configured HuggingFaceEmbeddings instance ready for vectorization.
     """
 
     device = (
@@ -44,16 +54,21 @@ def initialize_embedding_model(model_name: str="sentence-transformers/all-MiniLM
 
 
 def create_vector_store(persist_path: str, collection_name: str, embedding_model=None, collection_metadata={"hnsw:space": "cosine"}, **kwargs):
-    """Create a Chroma vector store with optional metadata overrides.
+    """Create or load a Chroma vector store.
+
+    Initializes a LangChain Chroma wrapper that persists data to disk. If a
+    collection already exists at the path, it will be loaded; otherwise a new
+    collection is created.
 
     Args:
-        persist_path: Directory for persisted Chroma data.
-        collection_name: Chroma collection name to create or load.
-        embedding_model: Embedding model used for vectorization.
-        db_kwargs: Additional keyword arguments for Chroma initialization.
+        persist_path: Directory path for Chroma database persistence.
+        collection_name: Name of the collection to create or load.
+        embedding_model: HuggingFaceEmbeddings instance for vectorization.
+        collection_metadata: Chroma collection config (default: cosine similarity).
+        **kwargs: Additional arguments passed to Chroma constructor.
 
     Returns:
-        Initialized Chroma vector store.
+        Configured Chroma vector store instance.
     """
     store = Chroma(
         collection_name=collection_name,
