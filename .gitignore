@@ -8,10 +8,18 @@ pytest.ini
 uv.lock
 *.txt
 *.ipynb
-data/**/*
+data/*
+!data/.gitkeep
+outputs/*
+!outputs/.gitkeep
+!outputs/logs/
+!outputs/metadata/
+outputs/logs/*
+!outputs/logs/.gitkeep
+outputs/metadata/*
+!outputs/metadata/.gitkeep
 *.csv
 *.json
-persist_parent_docs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

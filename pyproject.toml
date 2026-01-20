@@ -1,7 +1,7 @@
 [project]
 name = "agentic-cert-rag"
 version = "0.1.0"
-description = "Add your description here"
+description = "RAG Assistant pipeline for the Ready Tensor AI Essentials Certification"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

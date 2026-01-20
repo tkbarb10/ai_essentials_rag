@@ -1,3 +1,4 @@
+"""Integration tests for the RAGAssistant class."""
 import pytest
 
 from rag_assistant.rag_assistant import RAGAssistant

@@ -1,3 +1,4 @@
+"""Integration tests for web scraping functionality using the Tavily API."""
 import pytest
 
 from ingestion.scrape import website_map, extract_content, raw_web_content

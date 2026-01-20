@@ -23,6 +23,7 @@ A complete end-to-end RAG (Retrieval-Augmented Generation) pipeline that scrapes
 - [Usage Examples](#usage-examples)
 - [Configuration & Customization](#configuration--customization)
 - [Logging](#logging)
+- [Tests](#tests)
 - [Troubleshooting](#troubleshooting)
 - [Future Directions & Limitations](#future-directions--limitations)
 - [Contributing](#contributing)
@@ -581,6 +582,32 @@ outputs/logs/
 
 ---
 
+## 🧪 Tests
+
+The `tests/` directory contains both unit and integration tests using **pytest**.
+
+**Run all tests:**
+```bash
+pytest
+```
+
+**Run only unit tests:**
+```bash
+pytest tests/test_unit_*.py
+```
+
+**Run only integration tests:**
+```bash
+pytest tests/test_integration_*.py
+```
+
+**Run with verbose output:**
+```bash
+pytest -v
+```
+
+---
+
 ## 🔧 Troubleshooting
 
 ### Common Issues & Solutions
@@ -809,3 +836,12 @@ This project is licensed under the Apcahe 2.0 License - see the [LICENSE](LICENS
 ---
 
 **Questions or feedback?** Open an issue or reach out on [GitHub](https://github.com/tkbarb10/ai_essentials_rag)!
+
+---
+
+## 📬 Contact
+
+For questions, suggestions, or collaboration inquiries, feel free to reach out:
+
+- **Email**: tkbarb12@gmail.com
+- **GitHub**: [tkbarb10](https://github.com/tkbarb10)

@@ -1,3 +1,4 @@
+"""Integration tests for the full RAG pipeline from document ingestion to query."""
 import pytest
 from types import SimpleNamespace
 

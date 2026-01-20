@@ -1,3 +1,4 @@
+"""Integration tests for the full application flow via Gradio interface."""
 import importlib
 import sys
 from types import SimpleNamespace

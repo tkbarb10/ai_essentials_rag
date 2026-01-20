@@ -1,3 +1,4 @@
+"""Integration tests for content preparation and organization using LLM."""
 import pytest
 from pathlib import Path
 import time
